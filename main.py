@@ -7,57 +7,6 @@ from sozdat import sozdat
 from connect import connect
 from rules import rules
 
-def auto_install_linux_icon():
-    if not sys.platform.startswith('linux'):
-        return  # только для Linux
-
-    # Определяем папку "Рабочий стол"
-    desktop = os.path.expanduser("~/Desktop")
-    if not os.path.isdir(desktop):
-        desktop = os.path.expanduser("~/Рабочий стол")
-    if not os.path.isdir(desktop):
-        return
-
-    desktop_file = os.path.join(desktop, "Bunker.desktop")
-    if os.path.exists(desktop_file):
-        return  # уже есть
-
-    # Путь к исполняемому файлу
-    if getattr(sys, 'frozen', False):
-        exe_path = sys.executable
-        # Папка, где лежит иконка (в сборке)
-        if hasattr(sys, '_MEIPASS'):
-            icon_base = sys._MEIPASS
-        else:
-            icon_base = os.path.dirname(exe_path)
-    else:
-        exe_path = os.path.abspath(__file__)
-        icon_base = os.path.dirname(exe_path)
-
-    icon_path = os.path.join(icon_base, "bunker.png")
-    if not os.path.exists(icon_path):
-        icon_path = ""  # без иконки, но ярлык всё равно создадим
-
-    content = f"""[Desktop Entry]
-Name=Бункер
-Comment=Сетевая игра
-Exec={exe_path}
-Icon={icon_path}
-Type=Application
-Categories=Game;
-StartupNotify=true
-Terminal=false
-"""
-    try:
-        with open(desktop_file, "w") as f:
-            f.write(content)
-        os.chmod(desktop_file, 0o755)
-        print("[✓] Ярлык игры создан на рабочем столе")
-    except:
-        pass
-
-auto_install_linux_icon()
-
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -85,24 +34,37 @@ def setup_resources():
     if not db_files:
         raise Exception("Не найдена БД в ресурсах exe!")
     DB_NAME = db_files[0]
+
     icon_ico_path = os.path.join(app_data_path, 'bunker.ico')
     icon_png_path = os.path.join(app_data_path, 'bunker.png')
     db_path = os.path.join(app_data_path, DB_NAME)
 
-    source_db = get_resource_path(DB_NAME)
-    shutil.copy2(source_db, db_path)
-    print(f"БД скопирована: {DB_NAME} -> {db_path}")
+    # Копируем БД, только если её нет
+    if not os.path.exists(db_path):
+        source_db = get_resource_path(DB_NAME)
+        shutil.copy2(source_db, db_path)
+        print(f"БД скопирована: {DB_NAME} -> {db_path}")
+    else:
+        print(f"БД уже существует: {db_path}")
 
+    # Копируем PNG иконку, если отсутствует
     if not os.path.exists(icon_png_path):
         source_png = get_resource_path('bunker.png')
         if os.path.exists(source_png):
             shutil.copy2(source_png, icon_png_path)
             print("PNG иконка скопирована")
+    else:
+        print("PNG иконка уже существует")
+
+    # Копируем ICO иконку, если отсутствует
     if not os.path.exists(icon_ico_path):
         source_ico = get_resource_path('bunker.ico')
         if os.path.exists(source_ico):
             shutil.copy2(source_ico, icon_ico_path)
             print("ICO иконка скопирована")
+    else:
+        print("ICO иконка уже существует")
+
     return icon_png_path, icon_ico_path, db_path
 
 # Получение путей
@@ -121,8 +83,6 @@ def prisoedinitsa():
 def book():
     okno.destroy()
     rules(ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH)
-
-
 okno = tk.Tk()
 okno.title("Бункер")
 okno.geometry('1200x1000')
@@ -195,5 +155,4 @@ pravila.pack(pady=10)
 footer = tk.Label(okno, text="⚡ Выживайте любой ценой ⚡",
                  font=("Arial", 10, "italic"), bg=BG_COLOR, fg=TEXT_COLOR)
 footer.pack(side="bottom", pady=20)
-
 okno.mainloop()

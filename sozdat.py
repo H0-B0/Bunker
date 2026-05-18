@@ -85,7 +85,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
 
                 thread = threading.Thread(target=run_server, daemon=True)
                 thread.start()
-                time.sleep(2)
+                time.sleep(1)
             except Exception as e:
                 with open("server_start_crash.log", "w") as f:
                     traceback.print_exc(file=f)
