@@ -79,19 +79,19 @@ def connect(icon_png, icon_ico, db_path):
             server_ip = '127.0.0.1:8000'
         okno.destroy()
         if maximum == 4:
-            okno4(player, game_code, icon_png, icon_ico, db_path, server_ip)
+            okno4(player, icon_png, icon_ico, db_path, game_code, server_ip)
         elif maximum == 5:
-            okno5(player, game_code, icon_png, icon_ico, db_path, server_ip)
+            okno5(player, icon_png, icon_ico, db_path, game_code, server_ip)
         elif maximum == 6:
-            okno6(player, game_code, icon_png, icon_ico, db_path, server_ip)
+            okno6(player, icon_png, icon_ico, db_path, game_code, server_ip)
         elif maximum == 7:
-            okno7(player, game_code, icon_png, icon_ico, db_path, server_ip)
+            okno7(player, icon_png, icon_ico, db_path, game_code, server_ip)
         elif maximum == 8:
-            okno8(player, game_code, icon_png, icon_ico, db_path, server_ip)
+            okno8(player, icon_png, icon_ico, db_path, game_code, server_ip)
         elif maximum == 9:
-            okno9(player, game_code, icon_png, icon_ico, db_path, server_ip)
+            okno9(player, icon_png, icon_ico, db_path, game_code, server_ip)
         elif maximum == 10:
-            okno10(player, game_code, icon_png, icon_ico, db_path, server_ip)
+            okno10(player, icon_png, icon_ico, db_path, game_code, server_ip)
 
     def back_window():
         okno.destroy()
