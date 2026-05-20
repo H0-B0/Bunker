@@ -55,7 +55,7 @@ def right1(code, icon_png, icon_ico, db_path):
 
         izgnanie = tk.Label(okno, text='''0   0   1   1
 ----------------
-1   1   1   2''',**BUTTON_STYLE)
+1   1   2   2''',**BUTTON_STYLE)
         izgnanie.grid(column=1,row=1,pady=(10,0))
 
     elif players == 6 or players == 5:
@@ -66,7 +66,7 @@ def right1(code, icon_png, icon_ico, db_path):
 
         izgnanie = tk.Label(okno, text='''0   1   1   1
 ----------------
-1   1   1   2''',**BUTTON_STYLE)
+1   1   2   2''',**BUTTON_STYLE)
         izgnanie.grid(column=1,row=1,pady=(10,0))
 
 
@@ -78,7 +78,7 @@ def right1(code, icon_png, icon_ico, db_path):
 
         izgnanie = tk.Label(okno, text='''1   1   1   1
 ---------------
-1   1   1   2''',**BUTTON_STYLE)
+1   1   2   2''',**BUTTON_STYLE)
         izgnanie.grid(column=1,row=1,pady=(10,0))
 
 
@@ -92,7 +92,7 @@ def right1(code, icon_png, icon_ico, db_path):
 
         izgnanie = tk.Label(okno, text='''1   1   1   2
 ----------------
-1   1   1   2''',**BUTTON_STYLE)
+1   1   2   2''',**BUTTON_STYLE)
         izgnanie.grid(column=1,row=1,pady=(10,0))
 
     separator1 = tk.Frame(okno, height=2, width=200, bg=ACCENT_COLOR)
