@@ -78,7 +78,7 @@ def right1(code, icon_png, icon_ico, db_path):
 
         izgnanie = tk.Label(okno, text='''1   1   1   1
 ---------------
-1   1   2   2''',**BUTTON_STYLE)
+1   1   2   2''',**BUTTON_STYLE) 
         izgnanie.grid(column=1,row=1,pady=(10,0))
 
 
