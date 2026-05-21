@@ -39,13 +39,10 @@ def setup_resources():
     icon_png_path = os.path.join(app_data_path, 'bunker.png')
     db_path = os.path.join(app_data_path, DB_NAME)
 
-    # Копируем БД, только если её нет
-    if not os.path.exists(db_path):
-        source_db = get_resource_path(DB_NAME)
-        shutil.copy2(source_db, db_path)
-        print(f"БД скопирована: {DB_NAME} -> {db_path}")
-    else:
-        print(f"БД уже существует: {db_path}")
+    # Всегда копируем БД (перезаписываем)
+    source_db = get_resource_path(DB_NAME)
+    shutil.copy2(source_db, db_path)
+    print(f"БД скопирована (перезапись): {DB_NAME} -> {db_path}")
 
     # Копируем PNG иконку, если отсутствует
     if not os.path.exists(icon_png_path):
