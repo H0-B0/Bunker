@@ -741,6 +741,19 @@ def okno8(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
 
         window.after(1000, sws)
 
+        def pau():
+            nonlocal array
+            get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok")
+            array = get_in.json()
+            for i in range(1,5):
+                if i not in array:
+                    assoc2[i]._vikid()
+            zamena()
+
+            window.after(1000, pau)
+        
+        window.after(1000, pau)
+
         window.mainloop()
 
     except sq.Error as e:
