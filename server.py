@@ -12,6 +12,8 @@ app = FastAPI()
 
 roomses = {}
 
+array = []
+
 class RoomData(BaseModel):
     play: dict
 
@@ -19,6 +21,9 @@ class CardUpdate(BaseModel):
     player: str
     card: str
     value: str
+
+class Array(BaseModel):
+    data: list
 
 @app.post("/rooms/{room_code}")
 async def create_room(room_code: str, data: RoomData):
@@ -45,3 +50,14 @@ async def show_room(room_code: str):
 @app.get('/rooms')
 async def show_rooms():
     return list(roomses.keys())
+
+@app.post("/rooms/{room_code}/spisok")
+async def post_array(room_code:str, data:Array):
+    global array
+    array = data
+    print(f'Получен список {array}')
+
+@app.get("/rooms/{room_code}/spisok")
+async def get_array():
+    print(f'Отправлен список {array.data}')
+    return array.data

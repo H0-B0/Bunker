@@ -181,6 +181,7 @@ def okno5(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                 except: pass
 
         array = [1,2,3,4,5]
+        requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
 
         # ПРОСТАЯ РАБОЧАЯ СИСТЕМА ПРОКРУТКИ
         # Создаем основной контейнер
@@ -311,12 +312,19 @@ def okno5(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                 if hz == '':
                     self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
                     self.izgnanie.config(text='ВЕРНУТЬ',fg="#00E400")
-                    array.pop(0)
+                    array.remove(self.number)
+                    requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
                 elif hz == 'НЕ ГОДЕН':
                     self.yes_or_not.config(text='', fg=RED_ACCENT)
                     self.izgnanie.config(text='ИЗГНАТЬ',fg=RED_ACCENT)
-                    array.append(1)
+                    array.append(self.number)
+                    requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
                 zamena()
+
+
+            def _vikid(self):
+                self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
+                self.izgnanie.config(text='ВЕРНУТЬ',fg="#00E400")
 
             def prof_button(self):
                 if self.prof.get() == 0:
@@ -675,6 +683,19 @@ def okno5(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
             window.after(1000, sws)
 
         window.after(1000, sws)
+
+        def pau():
+            nonlocal array
+            get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok")
+            array = get_in.json()
+            for i in range(1,5):
+                if i not in array:
+                    assoc2[i]._vikid()
+            zamena()
+
+            window.after(1000, pau)
+        
+        window.after(1000, pau)
 
         window.mainloop()
 

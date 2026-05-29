@@ -61,8 +61,5 @@ def right2(code, icon_png, icon_ico, db_path):
     batonhcik = tk.Button(okno, text='Открыть концовку',command=baton,**STYLE)
     batonhcik.grid(column=0,row=3,pady=(120,0),padx=(90,0))
 
-    must = tk.Label(okno,text='Не нажимайте, пока ведущий не разрешит!!!',**ZAGOLOVOK_STYLE)
-    must.grid(column=0,row=4,pady=(100,0),padx=(60,0))
-
 if __name__ == '__main__':
     right2('25Y')
