@@ -10,7 +10,9 @@ from okno9 import okno9
 from okno10 import okno10
 import os
 import sys
+import requests
 
+# Нахождение БД и иконок
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -18,15 +20,18 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+# Основная функция
 def connect(icon_png, icon_ico, db_path):
     
     print(f"connect: db_path = {db_path}")
     print(f"connect: db exists = {os.path.exists(db_path) if db_path else False}")
     
+    #Начальные данные, до заполнения
     maximum = 1
     game_code = ''
     player = 1
     server_ip = "127.0.0.1:8000"
+    
     
     def update_label1(event=None):
         nonlocal player
@@ -34,7 +39,9 @@ def connect(icon_png, icon_ico, db_path):
         value1 = int(value)
         label1.config(text=f"🧍 Ваш номер: {value1}")
         player = value1
+        check_occupied_numbers()  # Проверяем при изменении номера
 
+    #Изменения максимального числа игроков мониторя БД
     def update_maximum_from_db(event=None):
         nonlocal maximum, game_code
         code = enter.get().strip().upper()
@@ -56,6 +63,7 @@ def connect(icon_png, icon_ico, db_path):
                                 update_label1()
                             max_label.config(text=f"⚡ Вместимость бункера: {maximum}", fg="#00FF00")
                             status_label.config(text="✅ Бункер обнаружен", fg="#00FF00")
+                            check_occupied_numbers()
                     else:
                         max_label.config(text="❌ Бункер не найден", fg="#FF0000")
                         status_label.config(text="⚠️ Проверьте код доступа", fg="#FF7B30")
@@ -70,14 +78,77 @@ def connect(icon_png, icon_ico, db_path):
                 update_label1()
             max_label.config(text="⚡ Вместимость бункера: 0", fg="#A0A0A0")
             status_label.config(text="⏳ Ожидание кода...", fg="#A0A0A0")
+            connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
+            error_label.config(text="")
         game_code = enter.get()
 
+    #Проверяет занятые номера и обновляет состояние кнопки
+    def check_occupied_numbers():
+        code = enter.get().strip().upper()
+        ip = ip_entry.get().strip()
+        
+        # Если нет IP или кода — не проверяем
+        if not ip or not code or len(code) < 2 or maximum == 0:
+            connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
+            error_label.config(text="")
+            status_label.config(text="⏳ Ожидание данных...", fg="#A0A0A0")
+            return
+        
+        try:
+            response = requests.get(f"http://{ip}/rooms/{code}/players", timeout=2)
+            if response.status_code == 200:
+                occupied = response.json()
+                current_number = int(slider1.get())
+                
+                if current_number in occupied:
+                    connect_btn.config(state="disabled", text="❌ Номер занят", bg="#444444")
+                    error_label.config(text="⚠️ Номер занят другим игроком!", fg="#FF0000")
+                    status_label.config(text="⚠️ Выберите другой номер", fg="#FF7B30")
+                else:
+                    connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
+                    error_label.config(text="✅ Номер свободен", fg="#00FF00")
+                    status_label.config(text="✅ Можно подключаться", fg="#00FF00")
+            else:
+                connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
+                error_label.config(text="⚠️ Комната не найдена", fg="#FF7B30")
+                status_label.config(text="⚠️ Проверьте код", fg="#FF7B30")
+        except requests.exceptions.ConnectionError:
+            connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
+            error_label.config(text="⚠️ Сервер не отвечает", fg="#FF7B30")
+            status_label.config(text="⚠️ Проверьте IP и сервер", fg="#FF7B30")
+        except Exception as e:
+            print(f"Ошибка проверки занятых номеров: {e}")
+            connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
+            error_label.config(text="⚠️ Ошибка соединения", fg="#FF7B30")
+            status_label.config(text="⚠️ Проверьте IP", fg="#FF7B30")
+
+    #Вызывается, если IP изменяется
+    def on_ip_change(event=None):
+        check_occupied_numbers()
+
+    # Главная функция
     def connection():
         nonlocal maximum, game_code, player, server_ip
         server_ip = ip_entry.get().strip()
         if not server_ip:
             server_ip = '127.0.0.1:8000'
+        
+        # Проверяем, занят ли номер перед подключением
+        code = enter.get().strip().upper()
+        if code and len(code) >= 2:
+            try:
+                response = requests.get(f"http://{server_ip}/rooms/{code}/players", timeout=2)
+                if response.status_code == 200:
+                    occupied = response.json()
+                    if player in occupied:
+                        error_label.config(text="❌ Этот номер уже занят!", fg="#FF0000")
+                        return
+            except:
+                pass
+        
         okno.destroy()
+        
+        # В зависимости от максимального количества игроков в комнате, запкускаем определенный файл
         if maximum == 4:
             okno4(player, icon_png, icon_ico, db_path, game_code, server_ip)
         elif maximum == 5:
@@ -93,11 +164,13 @@ def connect(icon_png, icon_ico, db_path):
         elif maximum == 10:
             okno10(player, icon_png, icon_ico, db_path, game_code, server_ip)
 
+    # Функция для возвращения в подобие main
     def back_window():
         okno.destroy()
         import podmain
         podmain.podmaini(icon_png, icon_ico, db_path)
 
+    # Создание окна
     okno = tk.Tk()
     okno.geometry('1200x1000')
     okno.title('Бункер')
@@ -120,6 +193,7 @@ def connect(icon_png, icon_ico, db_path):
 
     okno.configure(bg=BG_COLOR)
     
+    # Выбор иконки взависимости от системы
     if sys.platform.startswith('win'):
         if icon_ico and os.path.exists(icon_ico):
             okno.iconbitmap(icon_ico)
@@ -130,7 +204,6 @@ def connect(icon_png, icon_ico, db_path):
                 okno.iconphoto(True, img)
             except:
                 pass
-
 
     # Стили
     TITLE_STYLE = {"font": ("Courier New", 28, "bold"), "bg": BG_COLOR, "fg": ACCENT_COLOR}
@@ -158,41 +231,35 @@ def connect(icon_png, icon_ico, db_path):
         "bd": 2
     }
 
-    # Заголовок
+    # Разметка
     title_label = tk.Label(okno, text="🔌 ПОДКЛЮЧЕНИЕ К КОМНАТЕ 🔌", **TITLE_STYLE)
     title_label.pack(pady=(30, 20))
 
-    # Кнопка назад
     back = tk.Button(okno, text="←", **BACK_BUTTON_STYLE, command=back_window)
     back.place(x=20, y=20)
 
     ip_label = tk.Label(okno, text="🌐 IP АДРЕС СЕРВЕРА (IP:PORT)", **LABEL_STYLE)
     ip_label.pack(pady=(10,5))
-
     ip_entry = tk.Entry(okno, **ENTRY_STYLE, width=25)
     ip_entry.pack(pady=5)
+    ip_entry.bind("<KeyRelease>", on_ip_change)
+    ip_entry.bind("<<Paste>>", lambda e: okno.after(100, on_ip_change))
 
-    # Ввод кода комнаты
     vvod = tk.Label(okno, text='🔑 ВВЕДИТЕ КОД КОМНАТЫ (CAPS)', **LABEL_STYLE)
     vvod.pack(pady=(40, 10))
-
     enter = tk.Entry(okno, **ENTRY_STYLE, width=20)
     enter.pack(pady=15)
     enter.focus()
 
-    # Статус подключения
     status_label = tk.Label(okno, text="⏳ Ожидание кода...", **LABEL_STYLE)
     status_label.pack(pady=10)
 
-    # Информация о бункере
     max_label = tk.Label(okno, text="⚡ Вместимость бункера: 0", **LABEL_STYLE)
     max_label.pack(pady=15)
 
-    # Выбор номера игрока
     player_label = tk.Label(okno, text="🧍 ВЫБЕРИТЕ СВОЙ НОМЕР", **LABEL_STYLE)
     player_label.pack(pady=(30, 10))
 
-    # Стилизация слайдера
     style = ttk.Style()
     style.configure("Horizontal.TScale", 
                    background=BG_COLOR,
@@ -208,11 +275,19 @@ def connect(icon_png, icon_ico, db_path):
     label1 = tk.Label(okno, text="🧍 Ваш номер: 1", **LABEL_STYLE)
     label1.pack(pady=15)
 
-    # Кнопка подключения
+    # --- БЛОК ПРОВЕРКИ ЗАНЯТЫХ НОМЕРОВ ---
+    error_label = tk.Label(okno, text="", **LABEL_STYLE)
+    error_label.pack(pady=5)
+
     connect_btn = tk.Button(okno, text="🚀 ПОДКЛЮЧИТЬСЯ", command=connection, **BUTTON_STYLE)
     connect_btn.pack(pady=40)
 
-    # Поясняющий текст
+    # Привязка событий
+    slider1.bind("<ButtonRelease>", update_label1)
+    slider1.bind("<Motion>", update_label1)
+    enter.bind("<KeyRelease>", update_maximum_from_db)
+    enter.bind("<<Paste>>", lambda e: okno.after(100, update_maximum_from_db))
+
     info_text = tk.Label(okno, 
                         text="⚠️ Введите код комнаты и выберите свой номер\n"
                              "Система автоматически проверит доступность",
@@ -221,12 +296,6 @@ def connect(icon_png, icon_ico, db_path):
                         fg="#A0A0A0",
                         justify="center")
     info_text.pack(pady=(30, 20))
-
-    # Бинды
-    slider1.bind("<Motion>", update_label1)
-    slider1.bind("<ButtonRelease>", update_label1)
-    enter.bind("<KeyRelease>", update_maximum_from_db)
-    enter.bind("<<Paste>>", lambda e: okno.after(100, update_maximum_from_db))
 
     okno.mainloop()
 

@@ -14,6 +14,11 @@ roomses = {}
 
 array = []
 
+players = []
+
+class Player(BaseModel):
+    player:int
+
 class RoomData(BaseModel):
     play: dict
 
@@ -61,3 +66,21 @@ async def post_array(room_code:str, data:Array):
 async def get_array():
     print(f'Отправлен список {array.data}')
     return array.data
+
+@app.post("/rooms/{room_code}/players/del")
+async def del_player(room_code:str, data:Player):
+    players.remove(data.player)
+    print(f'Удален игрок {data.player}')
+
+@app.post("/rooms/{room_code}/players/accept")
+async def accept_player(room_code:str, data:Player):
+    players.append(data.player)
+    print(f"Принят игрок {data.player}")
+
+@app.get("/rooms/{room_code}/players")
+async def get_players(room_code:str):
+    print(players)
+    return players
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

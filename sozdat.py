@@ -3,8 +3,9 @@ from tkinter import ttk
 import os
 import sys
 import socket
-import time
+import requests
 import threading
+import time
 import traceback
 
 # Импорты игровых окон
@@ -75,6 +76,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
         result = sock.connect_ex((host, int(port)))
         sock.close()
 
+        #Чтобы самому запускать сервер комментировать отсюда
         if result != 0:
             try:
                 import uvicorn
@@ -90,10 +92,9 @@ def sozdat(icon_png, icon_ico, db_path=None):
                 with open("server_start_crash.log", "w") as f:
                     traceback.print_exc(file=f)
                 raise
+        #До сюда
 
         okno.destroy()
-        # Закомментируйте print, если он мешает (но он не должен влиять на запуск)
-        # print(f"Создаём комнату: {value1} игроков, игрок №{value2}, сервер: {server_ip}")
 
         if value1 == 4:
             okno4(value2, icon_png, icon_ico, db_path, '', server_ip)

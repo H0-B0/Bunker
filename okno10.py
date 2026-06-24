@@ -474,7 +474,7 @@ def okno10(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:80
                 for_bunker = tk.Label(container,text='В бункер хочет попасть',**HEADING_STYLE)
                 for_bunker.grid(column=0,row=4,sticky='wn')
 
-                self.count = tk.Label(container,text=f'{len(array)}/2 людей',**HEADING_STYLE)
+                self.count = tk.Label(container,text=f'{len(array)}/5 людей',**HEADING_STYLE)
                 self.count.grid(column=0,row=5,sticky='wn')
 
                 name = tk.Label(container, text=f"🧍 ВЫЖИВШИЙ #{self.number}", **HEADING_STYLE)
@@ -762,7 +762,7 @@ def okno10(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:80
         def sws():
             get_in = requests.get(f"http://{server_ip}/rooms/{code}")
             play = get_in.json()
-            for i in range(1,10):
+            for i in range(1,11):
                 assoc2[i].profession.config(text=play['play'][f'igrok{i}']['Профессия'])
                 assoc2[i].biology.config(text=play['play'][f'igrok{i}']['Биология'])
                 assoc2[i].health.config(text=play['play'][f'igrok{i}']['Здоровье'])
@@ -783,7 +783,7 @@ def okno10(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:80
             nonlocal array
             get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok")
             array = get_in.json()
-            for i in range(1,5):
+            for i in range(1,11):
                 if i not in array:
                     assoc2[i]._vikid()
             zamena()

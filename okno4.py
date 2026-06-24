@@ -11,6 +11,7 @@ import requests
 import threading
 import time
 
+# Список игроков и начальных данных
 play = {
 "igrok1":{
 "Профессия":"hidden",
@@ -54,6 +55,7 @@ play = {
 "Условие":"hidden"}
 }
 
+# Нааходим БД и картинки
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -61,12 +63,14 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+#Основная функция
 def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:8000'):
     
     print(f"okno4: db_path = {db_path}")
     print(f"okno4: db exists = {os.path.exists(db_path) if db_path else False}")
     print(f"okno4: server_ip = {server_ip}")
 
+    #Если код комнаты пустой(То есть она создается), то берем рандомную по количеству игроков и извлекаем из нее данные
     try:
         with sq.connect(db_path) as dannie:
             cur = dannie.cursor()
@@ -159,6 +163,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
         window.withdraw()
         window.update_idletasks()
 
+        # Взависимости от системы берем иконку
         if sys.platform.startswith('win'):
             if icon_ico and os.path.exists(icon_ico):
                 window.iconbitmap(icon_ico)
@@ -169,6 +174,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                     window.iconphoto(True, img)
                 except: pass
 
+        #Кидаем на сервер список, где все игроки еще в бункере
         array = [1,2,3,4]
         requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
 
@@ -225,7 +231,6 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                     canvas.yview_moveto(0.0)
 
         # Функция для прокрутки колесом мыши
-        # Функция для прокрутки колесом мыши
         def on_mousewheel(event):
             if scroll_enabled:
                 if sys.platform.startswith('win'):
@@ -256,19 +261,33 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
 
         window.bind("<Configure>", on_window_resize)
 
+        # Функция меняющая количество игроков
         def zamena():
             user1.count.config(text=f'{len(array)}/2 людей')
             user2.count.config(text=f'{len(array)}/2 людей') 
             user3.count.config(text=f'{len(array)}/2 людей')
             user4.count.config(text=f'{len(array)}/2 людей')
 
+        # Функция убирающая игрока, если окно закрывается
+        def on_closing():
+            # try для того, чтобы если сервер выключен, можно было закрыть окно
+            try:
+                requests.post(f'http://{server_ip}/rooms/{code}/players/del', json={'player':player})
+            except Exception:
+                pass
+            window.destroy()
+
+        # Класс игрока
         class Player:
+            # Бинд главных переменых
             def __init__(self,massiv,number):
+                # Внутренняя инфа
                 self.massiv = massiv
                 self.number = number
                 self.db_path = db_path
                 self.code = code
 
+                # Профессии
                 self.profession = None
                 self.biology = None
                 self.health = None
@@ -279,6 +298,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                 self.bagaje = None
                 self.uslovie = None
 
+                # Чекбоксы
                 self.prof = tk.IntVar()
                 self.bio = tk.IntVar()
                 self.heal = tk.IntVar()
@@ -289,6 +309,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                 self.bag = tk.IntVar()
                 self.usl = tk.IntVar()
 
+            # ФУНКЦИИ КНОПОК
             def right_window(self):
                 if len(array) != 2:
                     showerror(title='Ошибка',message='Чтобы открыть угрозу в комнате должно остаться 2 игрока')
@@ -367,7 +388,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                 else:
                     requests.post(f'http://{server_ip}/rooms/{code}/update', json={'player':f'igrok{self.number}', 'card':'Условие', 'value':self.massiv[8]})
 
-
+            # Разметка игрока
             def create(self):
                 page = tk.Frame(content_frame, bg=BG_COLOR)
                 # Блок Игрок 1
@@ -468,39 +489,30 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
 
                 self.chek_prof = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.prof_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.prof)
-                # self.chek_prof.grid(column=2,row=2,sticky='w',padx=(0,20))
 
                 self.chek_bio = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.bio_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.bio)
-                # self.chek_bio.grid(column=2,row=4,sticky='w',padx=(0,20))
 
                 self.chek_heal = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.heal_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.heal)
-                # self.chek_heal.grid(column=2,row=6,sticky='w',padx=(0,20))
 
                 self.chek_hobby = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.hoby_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.hoby)
-                # self.chek_hobby.grid(column=2,row=8,sticky='w',padx=(0,20))
 
                 self.chek_fobya = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.fobia_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.fobia)
-                # self.chek_fobya.grid(column=2,row=10,sticky='w',padx=(0,20))
 
                 self.chek_char = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.char_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.char)
-                # self.chek_char.grid(column=2,row=12,sticky='w',padx=(0,20))
 
                 self.chek_fact = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.fact_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.fiact)
-                # self.chek_fact.grid(column=2,row=14,sticky='w',padx=(0,20))
 
                 self.chek_bag = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.bag_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.bag)
-                # self.chek_bag.grid(column=2,row=16,sticky='w',padx=(0,20))
 
                 self.chek_usl = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.usl_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.usl)
-                # self.chek_usl.grid(column=2,row=18,sticky='w',padx=(0,20))
 
                 left_button = tk.Button(container, text='☣', font=13, fg='yellow', bg='#4A4A2A', 
                                     command=lambda:left(room_info[0][1], icon_png, icon_ico, db_path))
@@ -526,7 +538,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
 
                 return page
             
-            
+            # Полное открытие всех характеристик игрока
             def characters(self):
                 self.profession.config(text=self.massiv[0])
                 self.biology.config(text=self.massiv[1])
@@ -547,17 +559,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
                 self.chek_bag.grid(column=2,row=16,sticky='w',padx=(0,20))
                 self.chek_usl.grid(column=2,row=18,sticky='w',padx=(0,20))
 
-            def for_chars(self):
-                self.profession.config(text=self.massiv[0])
-                self.biology.config(text=self.massiv[1])
-                self.health.config(text=self.massiv[2])
-                self.hobby.config(text=self.massiv[3])
-                self.fobya.config(text=self.massiv[6])
-                self.chara.config(text=self.massiv[4])
-                self.fact.config(text=self.massiv[5])
-                self.bagaje.config(text=self.massiv[7])
-                self.uslovie.config(text=self.massiv[8])
-
+        #Инициализация игроков и страниц
         user1 = Player(player1,1)
         user2 = Player(player2,2)
         user3 = Player(player3,3)
@@ -612,6 +614,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
             "width": 10
         }
 
+        # Кнопки страниц
         btn1 = tk.Button(btn_frame, text="Игрок 1", command=lambda: show_page(page1), **NAV_BUTTON_STYLE)
         btn1.pack(side="left", padx=5)
 
@@ -628,12 +631,15 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
         assoc1 = {1:page1, 2:page2, 3:page3, 4:page4}
         assoc2 = {1:user1, 2:user2, 3:user3, 4:user4}
 
+        # Если номер игрока есть в 1 и втором словаре, показываем его, и отправляем его номер на сервер
         if player in assoc1 and player in assoc2:
             show_page(assoc1[player])
             assoc2[player].characters()
+            requests.post(f'http://{server_ip}/rooms/{code}/players/accept', json={'player':player})
 
         # Запускаем приложение
         window.deiconify()  # Показываем окно
+        # Взависимости от системы ставим полноэкранный режим
         if sys.platform.startswith('win'):
             window.state('zoomed')
         else:
@@ -645,6 +651,8 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
         # Однократное обновление в конце
         window.update_idletasks()
         configure_scrollregion()
+
+        # Обновление характеристик других игроков, если они их открыли
         def sws():
             get_in = requests.get(f"http://{server_ip}/rooms/{code}")
             play = get_in.json()
@@ -665,7 +673,7 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
 
         window.after(1000, sws)
 
-
+        # Обновляем количество изгнанных игроков
         def pau():
             nonlocal array
             get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok")
@@ -679,11 +687,13 @@ def okno4(player, icon_png, icon_ico, db_path, code='', server_ip='127.0.0.1:800
         
         window.after(1000, pau)
 
+        # Обработка нажатия на крестик(Закрытие)
+        window.protocol("WM_DELETE_WINDOW", on_closing)
+
         window.mainloop()
 
     except sq.Error as e:
         print(f"Database error in okno4: {e}")
-        # Можно добавить messagebox для показа ошибки
         import tkinter.messagebox as mb
         mb.showerror("Ошибка БД", f"Не удалось подключиться к базе данных: {e}")
         return
