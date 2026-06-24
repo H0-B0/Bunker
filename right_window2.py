@@ -3,6 +3,7 @@ import tkinter as tk
 import os
 import sys
 
+# Получение пути картинок и БД
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -10,14 +11,16 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+# Основная функция
 def right1(code, icon_png, icon_ico, db_path):
     
-    # Используй переданный db_path!
+    # Получение кода комнаты из переданной БД
     with sq.connect(db_path) as dannie:  # ← ВАЖНО: используй db_path
         cur = dannie.cursor()
         cur.execute("SELECT max_players,years,mesto,ploshad FROM rooms WHERE code = ?",(code,))
         data = cur.fetchall()
         
+        # Получение максимального количества игроков для данной комнаты
         players = data[0][0]
 
     # Стиль апокалипсиса
@@ -31,9 +34,12 @@ def right1(code, icon_png, icon_ico, db_path):
     BUTTON_STYLE = {"font": ("Arial", 12), "bg": BG_COLOR, 'fg' : TEXT_COLOR}
     STYLE = {"font": ("Arial", 12), "bg": BG_COLOR, 'fg' : 'darkorange'}
 
+    # Создание дочернего окна поверх других
     okno = tk.Toplevel()
     okno.configure(background=BG_COLOR)
     okno.geometry('450x700')
+
+    # Взависимости от системы ставится иконка
     if sys.platform.startswith('win'):
         if icon_ico and os.path.exists(icon_ico):
             okno.iconbitmap(icon_ico)
@@ -44,9 +50,11 @@ def right1(code, icon_png, icon_ico, db_path):
                 okno.iconphoto(True, img)
             except: pass
 
+    # Контент
     rounds = tk.Label(okno, text='Раунды',**ZAGOLOVOK_STYLE)
     rounds.grid(column=1, row=0)
 
+    # Взависимости от того, сколько игроков ставится количество раундов с изгнанием игроков. Раскрытие карт не меняется
     if players == 4:
         for4_players = tk.Label(okno,text="""Изгнать игроков:
                                 

@@ -3,6 +3,7 @@ import sqlite3 as sq
 import os
 import sys
 
+# Находим БД и картинки
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -10,7 +11,9 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+# Основная функция
 def left(code, icon_png, icon_ico, db_path):
+    # По коду вытаскиваем инфу для окна
     with sq.connect(db_path) as conn:
         cur = conn.cursor()
         cur.execute("SELECT kard, flats, apoc, years, mesto, ploshad FROM rooms WHERE code = ?", (code,))
@@ -23,6 +26,7 @@ def left(code, icon_png, icon_ico, db_path):
     mesto = data[0][4]
     s = data[0][5]
 
+    # Цвета и стили
     BG_COLOR = "#1A1A1A"
     TEXT_COLOR = "#E0E0E0"
     ACCENT_COLOR = "#FF7B30"
@@ -33,12 +37,13 @@ def left(code, icon_png, icon_ico, db_path):
     BUTTON_STYLE = {"font": ("Arial", 12), "bg": BG_COLOR, "fg": TEXT_COLOR}
     PADDING = {"pady": 5}
 
+    # РАЗМЕТКА
     okno = tk.Toplevel()
     okno.configure(background=BG_COLOR)
     okno.geometry('650x400')
     okno.title("Информация о бункере")
 
-    # Иконка
+    # Взависимости от системы ставим иконку
     if sys.platform.startswith('win'):
         if icon_ico and os.path.exists(icon_ico):
             okno.iconbitmap(icon_ico)
@@ -112,7 +117,7 @@ def left(code, icon_png, icon_ico, db_path):
     okno.bind("<Configure>", lambda e: configure_scrollregion())
     # ========== КОНЕЦ ПРОКРУТКИ ==========
 
-    # Контент (без изменений)
+    # Контент
     apoc_title = tk.Label(content_frame, text='Апокалипсис:', **HEADING_STYLE)
     apoc_title.grid(column=0, row=0, sticky='w', padx=20)
 

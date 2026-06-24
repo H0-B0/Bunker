@@ -17,6 +17,8 @@ from okno8 import okno8
 from okno9 import okno9
 from okno10 import okno10
 
+
+# Получение БД и картинок
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -24,10 +26,14 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+# Основная функция
 def sozdat(icon_png, icon_ico, db_path=None):
+    # Создание окна
     okno = tk.Tk()
     okno.geometry('1200x1000')
     okno.title('Бункер')
+
+    # Взависимости от системы ставится полноэкранный режим
     if sys.platform.startswith('win'):
         okno.state('zoomed')
     else:
@@ -36,6 +42,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
         except:
             okno.state('normal')
 
+    # Цвета
     BG_COLOR = "#1A1A1A"
     TEXT_COLOR = "#E0E0E0"
     ACCENT_COLOR = "#FF7B30"
@@ -44,6 +51,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
 
     okno.configure(bg=BG_COLOR)
 
+    # Взависимости от системы ставится иконка
     if sys.platform.startswith('win'):
         if icon_ico and os.path.exists(icon_ico):
             okno.iconbitmap(icon_ico)
@@ -55,12 +63,15 @@ def sozdat(icon_png, icon_ico, db_path=None):
             except:
                 pass
 
+    # Начальные данные
     value1 = 4
     value2 = 1
     server_ip = '127.0.0.1:8000'
 
+    # Главная функция
     def made():
         nonlocal value1, value2, server_ip
+        # Получение IP
         server_ip = ip_entry.get().strip()
         if not server_ip:
             server_ip = '127.0.0.1:8000'
@@ -76,6 +87,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
         result = sock.connect_ex((host, int(port)))
         sock.close()
 
+        # АВТОМАТИЧЕСКИЙ ЗАПУСК СЕРВЕРА
         #Чтобы самому запускать сервер комментировать отсюда
         if result != 0:
             try:
@@ -112,6 +124,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
             okno10(value2, icon_png, icon_ico, db_path, '', server_ip)
 
     def update_label1(event=None):
+        # Обновление ролла с количеством игроков
         nonlocal value1, value2
         value = slider1.get()
         value1 = int(value)
@@ -123,16 +136,19 @@ def sozdat(icon_png, icon_ico, db_path=None):
             label2.config(text=f"🧍 Ваш номер в бункере: {value2}")
 
     def update_label2(event=None):
+        # Обновление ролла с номером игрока
         nonlocal value2
         value = slider2.get()
         value2 = int(value)
         label2.config(text=f"🧍 Ваш номер в бункере: {value2}")
 
+    # Кнопка выхода в подделку main
     def back_window():
         okno.destroy()
         import podmain
         podmain.podmaini(icon_png, icon_ico, db_path)
 
+    # Стили
     TITLE_STYLE = {"font": ("Courier New", 28, "bold"), "bg": BG_COLOR, "fg": ACCENT_COLOR}
     LABEL_STYLE = {"font": ("Arial", 16, "bold"), "bg": BG_COLOR, "fg": TEXT_COLOR}
     ENTRY_STYLE = {"font": ("Courier New", 14, "bold"), "bg": BUTTON_BG, "fg": TEXT_COLOR,
@@ -159,6 +175,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
         "bd": 2
     }
 
+    # Контент
     title_label = tk.Label(okno, text="🚧 СОЗДАНИЕ БУНКЕРА 🚧", **TITLE_STYLE)
     title_label.pack(pady=(30, 20))
     back = tk.Button(okno, text="←", **BACK_BUTTON_STYLE, command=back_window)

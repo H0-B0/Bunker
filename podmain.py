@@ -5,6 +5,10 @@ from rules import rules
 import os
 import sys
 
+###
+#ЭТОТ ФАЙЛ ПО СВОЕЙ СУТИ ВТОРОЙ main
+###
+
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS

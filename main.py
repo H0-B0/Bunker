@@ -7,6 +7,7 @@ from sozdat import sozdat
 from connect import connect
 from rules import rules
 
+# Находим БД и картинки в приложении
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -68,21 +69,27 @@ def setup_resources():
 ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH = setup_resources()
 print(f"DB_PATH: {DB_PATH}, exists={os.path.exists(DB_PATH)}")
 
+# Переход к созданию комнаты
 def made():
     okno.destroy()
     sozdat(ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH)
 
-
+# Переход к присоединению к комнате
 def prisoedinitsa():
     okno.destroy()
     connect(ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH)
 
+# Переход к правилам
 def book():
     okno.destroy()
     rules(ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH)
+
+# Создание окна
 okno = tk.Tk()
 okno.title("Бункер")
 okno.geometry('1200x1000')
+
+# Взависимости от окна идет полноэкранный режим
 if sys.platform.startswith('win'):
     okno.state('zoomed')
 else:
@@ -91,6 +98,7 @@ else:
     except:
         okno.state('normal')
 
+# Цвета
 BG_COLOR = "#1A1A1A"
 TEXT_COLOR = "#E0E0E0"
 ACCENT_COLOR = "#FF7B30"
@@ -99,7 +107,7 @@ BUTTON_ACTIVE = "#CC5500"
 
 okno.configure(bg=BG_COLOR)
 
-# Установка иконки
+# Установка иконки взависимости от платформы
 if sys.platform.startswith('win') and os.path.exists(ICON_ICO_PATH):
     okno.iconbitmap(ICON_ICO_PATH)
 elif os.path.exists(ICON_PNG_PATH):
@@ -125,6 +133,7 @@ BUTTON_STYLE = {
     "bd": 3
 }
 
+# Контент
 title_label = tk.Label(okno, text="🚧 БУНКЕР 🚧", **TITLE_STYLE)
 title_label.pack(pady=(50, 30))
 

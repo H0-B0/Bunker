@@ -4,6 +4,7 @@ from tkinter import messagebox
 import os
 import sys
 
+# Получение данных
 def get_resource_path(relative_path):
     try:
         base_path = sys._MEIPASS
@@ -11,14 +12,16 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+#Основная функция
 def right2(code, icon_png, icon_ico, db_path):
     
-    # Используй переданный db_path!
+    # Нахождение кода комнаты из переданного файла БД
     with sq.connect(db_path) as dannie:  # ← ВАЖНО: используй db_path
         cur = dannie.cursor()
         cur.execute("SELECT ugroza FROM rooms WHERE code = ?",(code,))
         data = cur.fetchall()[0][0].split(';')
 
+    #Функция показывающая концовку
     def baton():
         zagolovok.config(text=f'{data[0]}')
         trouble.config(text=f'{data[1]}')
@@ -36,9 +39,12 @@ def right2(code, icon_png, icon_ico, db_path):
     BUTTON_STYLE = {"font": ("Arial", 12), "bg": BG_COLOR, 'fg' : TEXT_COLOR}
     STYLE = {"font": ("Arial", 12), "bg": BG_COLOR, 'fg' : 'red'}
 
+    # Создание мелкого окна поверх других
     okno = tk.Toplevel()
     okno.configure(background=BG_COLOR)
     okno.geometry('450x700')
+
+    # Взависимости от системы ставится иконка
     if sys.platform.startswith('win'):
         if icon_ico and os.path.exists(icon_ico):
             okno.iconbitmap(icon_ico)
@@ -49,6 +55,7 @@ def right2(code, icon_png, icon_ico, db_path):
                 okno.iconphoto(True, img)
             except: pass
 
+    # Контент
     zagolovok = tk.Label(okno,text='',**ZAGOLOVOK_STYLE,wraplength=150)
     zagolovok.grid(column=0,row=0,padx=(70,0))
 
