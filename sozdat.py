@@ -7,7 +7,7 @@ import requests
 import threading
 import time
 import traceback
-from okno import okno
+from universal_okno import game_okno
 
 
 # Получение БД и картинок
@@ -98,7 +98,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
 
         okno.destroy()
 
-        okno(value2, icon_png, icon_ico, db_path, value1, '', server_ip)
+        game_okno(value2, icon_png, icon_ico, db_path, value1, '', server_ip)
 
     def update_label1(event=None):
         # Обновление ролла с количеством игроков

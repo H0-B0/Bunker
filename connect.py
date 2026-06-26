@@ -1,13 +1,7 @@
 import sqlite3 as sq
 import tkinter as tk
 from tkinter import ttk
-from okno4 import okno4
-from okno5 import okno5
-from okno6 import okno6
-from okno7 import okno7
-from okno8 import okno8
-from okno9 import okno9
-from okno10 import okno10
+from universal_okno import game_okno
 import os
 import sys
 import requests
@@ -147,23 +141,9 @@ def connect(icon_png, icon_ico, db_path):
                 pass
         
         okno.destroy()
-        
-        # В зависимости от максимального количества игроков в комнате, запкускаем определенный файл
-        if maximum == 4:
-            okno4(player, icon_png, icon_ico, db_path, game_code, server_ip)
-        elif maximum == 5:
-            okno5(player, icon_png, icon_ico, db_path, game_code, server_ip)
-        elif maximum == 6:
-            okno6(player, icon_png, icon_ico, db_path, game_code, server_ip)
-        elif maximum == 7:
-            okno7(player, icon_png, icon_ico, db_path, game_code, server_ip)
-        elif maximum == 8:
-            okno8(player, icon_png, icon_ico, db_path, game_code, server_ip)
-        elif maximum == 9:
-            okno9(player, icon_png, icon_ico, db_path, game_code, server_ip)
-        elif maximum == 10:
-            okno10(player, icon_png, icon_ico, db_path, game_code, server_ip)
 
+        game_okno(player, icon_png, icon_ico, db_path, maximum, game_code, server_ip)
+        
     # Функция для возвращения в подобие main
     def back_window():
         okno.destroy()
