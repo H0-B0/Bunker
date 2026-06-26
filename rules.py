@@ -2,6 +2,9 @@ import tkinter as tk
 import os
 import sys
 
+###
+#У этого окна минимальная значимость
+###
 def rules(icon_png, icon_ico, db_path):
     # Стиль апокалипсиса
     BG_COLOR = "#1A1A1A"  # Тёмно-серый, почти чёрный

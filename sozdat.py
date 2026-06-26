@@ -7,15 +7,7 @@ import requests
 import threading
 import time
 import traceback
-
-# Импорты игровых окон
-from okno4 import okno4
-from okno5 import okno5
-from okno6 import okno6
-from okno7 import okno7
-from okno8 import okno8
-from okno9 import okno9
-from okno10 import okno10
+from okno import okno
 
 
 # Получение БД и картинок
@@ -88,7 +80,6 @@ def sozdat(icon_png, icon_ico, db_path=None):
         sock.close()
 
         # АВТОМАТИЧЕСКИЙ ЗАПУСК СЕРВЕРА
-        #Чтобы самому запускать сервер комментировать отсюда
         if result != 0:
             try:
                 import uvicorn
@@ -104,24 +95,10 @@ def sozdat(icon_png, icon_ico, db_path=None):
                 with open("server_start_crash.log", "w") as f:
                     traceback.print_exc(file=f)
                 raise
-        #До сюда
 
         okno.destroy()
 
-        if value1 == 4:
-            okno4(value2, icon_png, icon_ico, db_path, '', server_ip)
-        elif value1 == 5:
-            okno5(value2, icon_png, icon_ico, db_path, '', server_ip)
-        elif value1 == 6:
-            okno6(value2, icon_png, icon_ico, db_path, '', server_ip)
-        elif value1 == 7:
-            okno7(value2, icon_png, icon_ico, db_path, '', server_ip)
-        elif value1 == 8:
-            okno8(value2, icon_png, icon_ico, db_path, '', server_ip)
-        elif value1 == 9:
-            okno9(value2, icon_png, icon_ico, db_path, '', server_ip)
-        elif value1 == 10:
-            okno10(value2, icon_png, icon_ico, db_path, '', server_ip)
+        okno(value2, icon_png, icon_ico, db_path, value1, '', server_ip)
 
     def update_label1(event=None):
         # Обновление ролла с количеством игроков
