@@ -211,33 +211,93 @@ def connect(icon_png, icon_ico, db_path):
         "bd": 2
     }
 
+    # ========== ПРОКРУТКА (bind_all) ==========
+    main_frame = tk.Frame(okno, bg=BG_COLOR)
+    main_frame.pack(fill=tk.BOTH, expand=True)
+
+    canvas = tk.Canvas(main_frame, bg=BG_COLOR, highlightthickness=0)
+    scrollbar = tk.Scrollbar(main_frame, orient=tk.VERTICAL, command=canvas.yview)
+    scrollbar.configure(bg=BG_COLOR, troughcolor=BG_COLOR, activebackground=BG_COLOR, width=0)
+
+    content_frame = tk.Frame(canvas, bg=BG_COLOR)
+    canvas_window = canvas.create_window((0, 0), window=content_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    def configure_scrollregion(event=None):
+        canvas.configure(scrollregion=canvas.bbox("all"))
+        canvas.update_idletasks()
+        if content_frame.winfo_reqwidth() < canvas.winfo_width():
+            canvas.itemconfig(canvas_window, width=canvas.winfo_width())
+        # Показать/скрыть скроллбар в зависимости от высоты контента
+        bbox = canvas.bbox("all")
+        if bbox and bbox[3] > okno.winfo_height():
+            if not scrollbar.winfo_ismapped():
+                scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+                canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        else:
+            if scrollbar.winfo_ismapped():
+                scrollbar.pack_forget()
+                canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+                canvas.yview_moveto(0.0)
+
+    def on_mousewheel(event):
+        if not scrollbar.winfo_ismapped():
+            return
+        if sys.platform.startswith('win'):
+            delta = -1 * (event.delta // 120)
+        else:
+            # Linux: определяем по event.num (4 - вверх, 5 - вниз)
+            if event.num == 4:
+                delta = -1
+            elif event.num == 5:
+                delta = 1
+            else:
+                delta = 0
+        if delta != 0:
+            canvas.yview_scroll(delta, "units")
+        return "break"
+
+    # Глобальная привязка ко всем окнам (включая дочерние)
+    if sys.platform.startswith('win'):
+        okno.bind_all("<MouseWheel>", on_mousewheel)
+    else:
+        okno.bind_all("<Button-4>", on_mousewheel)
+        okno.bind_all("<Button-5>", on_mousewheel)
+
+    content_frame.bind("<Configure>", configure_scrollregion)
+    canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=canvas.winfo_width()))
+
+    # Упаковываем canvas (скроллбар появится/исчезнет в configure_scrollregion)
+    canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+    # ========== КОНЕЦ ПРОКРУТКИ ==========
+
     # Разметка
-    title_label = tk.Label(okno, text="🔌 ПОДКЛЮЧЕНИЕ К КОМНАТЕ 🔌", **TITLE_STYLE)
+    title_label = tk.Label(content_frame, text="🔌 ПОДКЛЮЧЕНИЕ К КОМНАТЕ 🔌", **TITLE_STYLE)
     title_label.pack(pady=(30, 20))
 
     back = tk.Button(okno, text="←", **BACK_BUTTON_STYLE, command=back_window)
     back.place(x=20, y=20)
 
-    ip_label = tk.Label(okno, text="🌐 IP АДРЕС СЕРВЕРА (IP:PORT)", **LABEL_STYLE)
+    ip_label = tk.Label(content_frame, text="🌐 IP АДРЕС СЕРВЕРА (IP:PORT)", **LABEL_STYLE)
     ip_label.pack(pady=(10,5))
-    ip_entry = tk.Entry(okno, **ENTRY_STYLE, width=25)
+    ip_entry = tk.Entry(content_frame, **ENTRY_STYLE, width=25)
     ip_entry.pack(pady=5)
     ip_entry.bind("<KeyRelease>", on_ip_change)
     ip_entry.bind("<<Paste>>", lambda e: okno.after(100, on_ip_change))
 
-    vvod = tk.Label(okno, text='🔑 ВВЕДИТЕ КОД КОМНАТЫ (CAPS)', **LABEL_STYLE)
+    vvod = tk.Label(content_frame, text='🔑 ВВЕДИТЕ КОД КОМНАТЫ (CAPS)', **LABEL_STYLE)
     vvod.pack(pady=(40, 10))
-    enter = tk.Entry(okno, **ENTRY_STYLE, width=20)
+    enter = tk.Entry(content_frame, **ENTRY_STYLE, width=20)
     enter.pack(pady=15)
     enter.focus()
 
-    status_label = tk.Label(okno, text="⏳ Ожидание кода...", **LABEL_STYLE)
+    status_label = tk.Label(content_frame, text="⏳ Ожидание кода...", **LABEL_STYLE)
     status_label.pack(pady=10)
 
-    max_label = tk.Label(okno, text="⚡ Вместимость бункера: 0", **LABEL_STYLE)
+    max_label = tk.Label(content_frame, text="⚡ Вместимость бункера: 0", **LABEL_STYLE)
     max_label.pack(pady=15)
 
-    player_label = tk.Label(okno, text="🧍 ВЫБЕРИТЕ СВОЙ НОМЕР", **LABEL_STYLE)
+    player_label = tk.Label(content_frame, text="🧍 ВЫБЕРИТЕ СВОЙ НОМЕР", **LABEL_STYLE)
     player_label.pack(pady=(30, 10))
 
     style = ttk.Style()
@@ -248,27 +308,27 @@ def connect(icon_png, icon_ico, db_path):
                    darkcolor=ACCENT_COLOR,
                    lightcolor=ACCENT_COLOR)
 
-    slider1 = ttk.Scale(okno, from_=1, to=maximum, orient="horizontal", length=400, style="Horizontal.TScale")
+    slider1 = ttk.Scale(content_frame, from_=1, to=maximum, orient="horizontal", length=400, style="Horizontal.TScale")
     slider1.set(1)
     slider1.pack(pady=20)
 
-    label1 = tk.Label(okno, text="🧍 Ваш номер: 1", **LABEL_STYLE)
+    label1 = tk.Label(content_frame, text="🧍 Ваш номер: 1", **LABEL_STYLE)
     label1.pack(pady=15)
 
     # --- БЛОК ПРОВЕРКИ ЗАНЯТЫХ НОМЕРОВ ---
-    error_label = tk.Label(okno, text="", **LABEL_STYLE)
+    error_label = tk.Label(content_frame, text="", **LABEL_STYLE)
     error_label.pack(pady=5)
 
-    connect_btn = tk.Button(okno, text="🚀 ПОДКЛЮЧИТЬСЯ", command=connection, **BUTTON_STYLE)
+    connect_btn = tk.Button(content_frame, text="🚀 ПОДКЛЮЧИТЬСЯ", command=connection, **BUTTON_STYLE)
     connect_btn.pack(pady=40)
 
     # Привязка событий
     slider1.bind("<ButtonRelease>", update_label1)
     slider1.bind("<Motion>", update_label1)
     enter.bind("<KeyRelease>", update_maximum_from_db)
-    enter.bind("<<Paste>>", lambda e: okno.after(100, update_maximum_from_db))
+    enter.bind("<<Paste>>", lambda e: content_frame.after(100, update_maximum_from_db))
 
-    info_text = tk.Label(okno, 
+    info_text = tk.Label(content_frame, 
                         text="⚠️ Введите код комнаты и выберите свой номер\n"
                              "Система автоматически проверит доступность",
                         font=("Arial", 12, "italic"),
@@ -277,7 +337,11 @@ def connect(icon_png, icon_ico, db_path):
                         justify="center")
     info_text.pack(pady=(30, 20))
 
+    okno.update_idletasks()
+    configure_scrollregion()
     okno.mainloop()
+
+    okno.bind
 
 if __name__ == '__main__':
     connect()
