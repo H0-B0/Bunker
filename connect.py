@@ -341,7 +341,5 @@ def connect(icon_png, icon_ico, db_path):
     configure_scrollregion()
     okno.mainloop()
 
-    okno.bind
-
 if __name__ == '__main__':
     connect()
