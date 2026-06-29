@@ -285,12 +285,16 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 if hz == '':
                     self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
                     self.izgnanie.config(text='ВЕРНУТЬ',fg="#00E400")
-                    array.remove(self.number)
+                    try:
+                        array.remove(self.number)
+                    except Exception as e:
+                        pass
                     requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
                 elif hz == 'НЕ ГОДЕН':
                     self.yes_or_not.config(text='', fg=RED_ACCENT)
                     self.izgnanie.config(text='ИЗГНАТЬ',fg=RED_ACCENT)
-                    array.append(self.number)
+                    if self.number not in array:
+                        array.append(self.number)
                     requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
                 zamena()
 
