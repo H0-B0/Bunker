@@ -28,7 +28,7 @@ class CardUpdate(BaseModel):
     value: str
 
 class Array(BaseModel):
-    data: list
+    array: list
 
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
@@ -62,13 +62,32 @@ async def show_rooms():
 @app.post("/rooms/{room_code}/spisok")
 async def post_array(room_code:str, data:Array):
     global array
-    array = data
+    array = data.array
     print(f'Получен список {array}')
 
 @app.get("/rooms/{room_code}/spisok")
 async def get_array():
-    print(f'Отправлен список {array.data}')
-    return array.data
+    print(f'Отправлен список {array}')
+    return array
+
+# Механики для изгнания/ возвращения игроков
+@app.post('/rooms/{room_code}/add_player')
+async def addPlayer(room_code:str, data:Player):
+    global array
+    if data.player not in array:
+        array.append(data.player)
+        print(data.player)
+        print(array)
+
+@app.post('/rooms/{room_code}/del_player')
+async def delPlayer(room_code:str, data:Player):
+    global array
+    try:
+        array.remove(data.player)
+    except Exception as e:
+        pass
+    print(data.player)
+    print(array)
 
 # Механика удержания номера за игроком
 @app.post("/rooms/{room_code}/players/del")

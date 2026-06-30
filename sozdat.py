@@ -80,6 +80,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
         sock.close()
 
         # АВТОМАТИЧЕСКИЙ ЗАПУСК СЕРВЕРА
+        # Если хочешь сам запускать сервер, комментируй отсюда
         if result != 0:
             try:
                 import uvicorn
@@ -95,6 +96,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
                 with open("server_start_crash.log", "w") as f:
                     traceback.print_exc(file=f)
                 raise
+        # До сюда
 
         okno.destroy()
 

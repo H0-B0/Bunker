@@ -142,7 +142,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
         #Кидаем на сервер список, где все игроки еще в бункере
         array = []
         for i in range(1,max_p+1): array.append(i)
-        requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
+        requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'array':array})
 
         # ПРОСТАЯ РАБОЧАЯ СИСТЕМА ПРОКРУТКИ
         # Создаем основной контейнер
@@ -285,17 +285,11 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 if hz == '':
                     self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
                     self.izgnanie.config(text='ВЕРНУТЬ',fg="#00E400")
-                    try:
-                        array.remove(self.number)
-                    except Exception as e:
-                        pass
-                    requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
+                    requests.post(f'http://{server_ip}/rooms/{code}/del_player', json={'player':self.number})
                 elif hz == 'НЕ ГОДЕН':
                     self.yes_or_not.config(text='', fg=RED_ACCENT)
                     self.izgnanie.config(text='ИЗГНАТЬ',fg=RED_ACCENT)
-                    if self.number not in array:
-                        array.append(self.number)
-                    requests.post(f'http://{server_ip}/rooms/{code}/spisok', json={'data':array})
+                    requests.post(f'http://{server_ip}/rooms/{code}/add_player', json={'player':self.number})
                 zamena()
 
             def _vikid(self):
