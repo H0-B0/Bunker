@@ -16,6 +16,11 @@ array = []
 
 players = []
 
+locks = {}
+
+class Locks(BaseModel):
+    locks:dict
+
 class Player(BaseModel):
     player:int
 
@@ -30,22 +35,33 @@ class CardUpdate(BaseModel):
 class Array(BaseModel):
     array: list
 
+class EveryChar(BaseModel):
+    character:str
+    players:list
+    char_number:int
+
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
 async def create_room(room_code: str, data: RoomData):
     print(f'Комната {room_code} создана')
     print(f'Данные: {data.play}')
-    roomses[room_code] = data
+    roomses[room_code] = data.play
     return {"status": "ok", "message": f"Комната {room_code} успешно создана"}
+
+@app.post('/rooms/{room_code}/locks')
+async def add_locks(room_code:str, data:Locks):
+    global locks
+    locks = data.locks
+    print(f'Принят локс: {locks}')
 
 # Механика обновления характеристики у игрока
 @app.post("/rooms/{room_code}/update")
 async def update_room(room_code: str, data: CardUpdate):
     if room_code not in roomses:
         return {'status': 404, 'message': 'Комната не найдена'}
-    if data.player not in roomses[room_code].play:
+    if data.player not in roomses[room_code]:
         return {'status': 404, 'message': 'Игрок не найден'}
-    roomses[room_code].play[data.player][data.card] = data.value
+    roomses[room_code][data.player][data.card] = data.value
     return {'status': 200, 'message': 'OK'}
 
 @app.get("/rooms/{room_code}")
@@ -104,6 +120,42 @@ async def accept_player(room_code:str, data:Player):
 async def get_players(room_code:str):
     print(players)
     return players
+
+# Механика условий
+
+@app.post('/rooms/{room_code}/uslovie/every')
+async def every_char(room_code:str, data:EveryChar):
+    # Если говорить коротко, то вся эта часть чисто для того, чтобы найти минимальное количество hidden у неизганных игроков
+    room_players = roomses[room_code]
+    hidden_counts = {}
+    schet = 1
+    for player in room_players:
+        for char in room_players[player]:
+            if schet in array:
+                if room_players[player][char] == 'hidden':
+                    if player not in hidden_counts:
+                        hidden_counts[player] = 1
+                    else:
+                        hidden_counts[player] += 1
+        schet += 1
+    # Тут мы порсто засовываем в переменную, чтобы было удобно использовать
+    min_hidden = min(hidden_counts.values())
+
+    # А тут, если эта характеристика открыта, то ничего не делаем, а если закрыта делаем ее открытой и ставим в локс, чтобы потом убрать чекбокс у игрока, чтобы он не скрыл ее у себя
+    for player in hidden_counts.keys():
+        if hidden_counts[player] > min_hidden:
+            if room_players[player][data.character] == 'hidden':
+                locks[player] = data.character
+                igrok = int(player.replace('igrok',''))
+                roomses[room_code][player][data.character] = data.players[igrok-1][data.char_number]
+
+    print(f'Лок обновлен: {locks}')
+
+@app.get('/rooms/{room_code}/uslovie/locks')
+async def get_locks(room_code:str):
+    print(f'Отправлены локи: {locks}')
+    return locks
+
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8000)

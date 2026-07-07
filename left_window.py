@@ -3,14 +3,6 @@ import sqlite3 as sq
 import os
 import sys
 
-# Находим БД и картинки
-def get_resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except AttributeError:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
 # Основная функция
 def left(code, icon_png, icon_ico, db_path):
     # По коду вытаскиваем инфу для окна

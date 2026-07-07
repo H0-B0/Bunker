@@ -4,6 +4,7 @@ import sqlite3 as sq
 from left_window import left
 from right_window1 import right2
 from right_window2 import right1
+from uslovie_okno import usl_okno
 import os
 import sys
 from tkinter.messagebox import showerror
@@ -76,6 +77,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
 
         # Список игроков и начальных данных
         play = {}
+        locks = {}
         for i in range(1,max_p+1):
             play[f"igrok{i}"] = {
 "Профессия":"hidden",
@@ -87,9 +89,13 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
 "Факты":"hidden",
 "Багаж":"hidden",
 "Условие":"hidden"}
+            locks[f'igrok{i}'] = {}
 
         #Закидываем на сервер информацию о игроках
         requests.post(f'http://{server_ip}/rooms/{code}', json={'play':play})
+
+        #Закидываем локи на сервер
+        requests.post(f'http://{server_ip}/rooms/{code}/locks', json={'locks':locks})
 
         # СТИЛЬ АПОКАЛИПСИСА
         BG_COLOR = "#1A1A1A"  # Тёмный фон
@@ -273,6 +279,19 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 self.bag = tk.IntVar()
                 self.usl = tk.IntVar()
 
+            def del_check(self,char):
+                if char == {}:
+                    pass
+                else:
+                    if char == 'Профессия': self.chek_prof.grid_forget()
+                    elif char == 'Биология': self.chek_bio.grid_forget()
+                    elif char == "Здоровье": self.chek_heal.grid_forget()
+                    elif char == 'Хобби': self.chek_hobby.grid_forget()
+                    elif char == 'Фобия': self.chek_fobya.grid_forget()
+                    elif char == 'Характер': self.chek_char.grid_forget()
+                    elif char == 'Факты': self.chek_fact.grid_forget()
+                    elif char == 'Багаж': self.chek_bag.grid_forget()
+
             # ФУНКЦИИ КНОПОК
             def right_window(self):
                 if len(array) != math.floor(max_p/2):
@@ -291,6 +310,11 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                     self.izgnanie.config(text='ИЗГНАТЬ',fg=RED_ACCENT)
                     requests.post(f'http://{server_ip}/rooms/{code}/add_player', json={'player':self.number})
                 zamena()
+
+            def activate_usl(self):
+                self.chek_usl.grid_forget()
+                self.act_usl.grid_forget()
+                usl_okno(player, icon_png, icon_ico, self.uslovie.cget('text'), players, code, server_ip)
 
             def _vikid(self):
                 self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
@@ -349,6 +373,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                     requests.post(f'http://{server_ip}/rooms/{code}/update', json={'player':f'igrok{self.number}', 'card':'Условие', 'value':'hidden'})
                 else:
                     requests.post(f'http://{server_ip}/rooms/{code}/update', json={'player':f'igrok{self.number}', 'card':'Условие', 'value':self.massiv[8]})
+                    self.act_usl.grid(column=0,row=18,sticky='e')
 
             # Разметка игрока
             def create(self):
@@ -475,10 +500,12 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
 
                 self.chek_usl = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.usl_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.usl)
+                
+                self.act_usl = tk.Button(container, text='Активировать условие', background='#4A4A2A', font=13,fg='yellow', command=self.activate_usl)
 
                 left_button = tk.Button(container, text='☣', font=13, fg='yellow', bg='#4A4A2A', 
                                     command=lambda:left(room_info[0][1], icon_png, icon_ico, db_path))
-                left_button.grid(column=0,row=18)
+                left_button.grid(column=0,row=19)
 
                 self.izgnanie = tk.Button(container, text='ИЗГНАТЬ', font=("Arial", 12, "bold"), bg=BG_COLOR, fg=RED_ACCENT,
                                 relief="raised", bd=2, command=self.not_goden,width=8)
@@ -511,6 +538,8 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 self.fact.config(text=self.massiv[5])
                 self.bagaje.config(text=self.massiv[7])
                 self.uslovie.config(text=self.massiv[8])
+
+            def checks(self):
                 self.chek_prof.grid(column=2,row=2,sticky='w',padx=(0,20))
                 self.chek_bio.grid(column=2,row=4,sticky='w',padx=(0,20))
                 self.chek_heal.grid(column=2,row=6,sticky='w',padx=(0,20))
@@ -578,6 +607,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
         # 4. ПОКАЗЫВАЕМ ПЕРВУЮ СТРАНИЦУ ПРИ ЗАПУСКE
         show_page(pages[player])
         users[player].characters()
+        users[player].checks()
         requests.post(f'http://{server_ip}/rooms/{code}/players/accept', json={'player':player})
 
         # Запускаем приложение
@@ -600,17 +630,21 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
             get_in = requests.get(f"http://{server_ip}/rooms/{code}")
             play = get_in.json()
             for i in range(1,max_p+1):
-                users[i].profession.config(text=play['play'][f'igrok{i}']['Профессия'])
-                users[i].biology.config(text=play['play'][f'igrok{i}']['Биология'])
-                users[i].health.config(text=play['play'][f'igrok{i}']['Здоровье'])
-                users[i].hobby.config(text=play['play'][f'igrok{i}']['Хобби'])
-                users[i].fobya.config(text=play['play'][f'igrok{i}']['Фобия'])
-                users[i].chara.config(text=play['play'][f'igrok{i}']['Характер'])
-                users[i].fact.config(text=play['play'][f'igrok{i}']['Факты'])
-                users[i].bagaje.config(text=play['play'][f'igrok{i}']['Багаж'])
-                users[i].uslovie.config(text=play['play'][f'igrok{i}']['Условие'])
+                users[i].profession.config(text=play[f'igrok{i}']['Профессия'])
+                users[i].biology.config(text=play[f'igrok{i}']['Биология'])
+                users[i].health.config(text=play[f'igrok{i}']['Здоровье'])
+                users[i].hobby.config(text=play[f'igrok{i}']['Хобби'])
+                users[i].fobya.config(text=play[f'igrok{i}']['Фобия'])
+                users[i].chara.config(text=play[f'igrok{i}']['Характер'])
+                users[i].fact.config(text=play[f'igrok{i}']['Факты'])
+                users[i].bagaje.config(text=play[f'igrok{i}']['Багаж'])
+                users[i].uslovie.config(text=play[f'igrok{i}']['Условие'])
 
             users[player].characters()
+
+            get_locks = requests.get(f'http://{server_ip}/rooms/{code}/uslovie/locks').json()
+            for i in range(1,max_p+1):
+                users[i].del_check(get_locks[f'igrok{i}'])
 
             window.after(1000, sws)
 

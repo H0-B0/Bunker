@@ -4,14 +4,6 @@ from tkinter import messagebox
 import os
 import sys
 
-# Получение данных
-def get_resource_path(relative_path):
-    try:
-        base_path = sys._MEIPASS
-    except AttributeError:
-        base_path = os.path.abspath(".")
-    return os.path.join(base_path, relative_path)
-
 #Основная функция
 def right2(code, icon_png, icon_ico, db_path):
     
