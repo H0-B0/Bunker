@@ -40,6 +40,11 @@ class EveryChar(BaseModel):
     players:list
     char_number:int
 
+class DealChar(BaseModel):
+    player1:str
+    player2:str
+    char:str
+
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
 async def create_room(room_code: str, data: RoomData):
@@ -156,6 +161,31 @@ async def get_locks(room_code:str):
     print(f'Отправлены локи: {locks}')
     return locks
 
+@app.post('/rooms/{room_code}/uslovie/char')
+async def deal_one_char(room_code: str, data: DealChar):
+    print(f'Приняты игроки {data.player1} и {data.player2}')
+
+    player_one_char = roomses[room_code][data.player1][data.char]
+    player_two_char = roomses[room_code][data.player2][data.char]
+
+    # Если у кого-то hidden — не меняем
+    if player_one_char == 'hidden' or player_two_char == 'hidden':
+        print('Одна из характеристик скрыта — обмен невозможен')
+        return
+
+    # Меняем местами
+    roomses[room_code][data.player1][data.char] = player_two_char
+    roomses[room_code][data.player2][data.char] = player_one_char
+
+    # Правильные выводы
+    print(f'Теперь у {data.player1} характеристика: {roomses[room_code][data.player1][data.char]}')
+    print(f'Теперь у {data.player2} характеристика: {roomses[room_code][data.player2][data.char]}')
+
+    print(f'''Полный список:
+{roomses[room_code]}''')
+    
+    locks[data.player1] = data.char
+    locks[data.player2] = data.char
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8000)

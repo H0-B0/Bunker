@@ -314,7 +314,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
             def activate_usl(self):
                 self.chek_usl.grid_forget()
                 self.act_usl.grid_forget()
-                usl_okno(player, icon_png, icon_ico, self.uslovie.cget('text'), players, code, server_ip)
+                usl_okno(player, icon_png, icon_ico, players, code, server_ip,self.uslovie.cget('text'))
 
             def _vikid(self):
                 self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
@@ -629,6 +629,14 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
         def sws():
             get_in = requests.get(f"http://{server_ip}/rooms/{code}")
             play = get_in.json()
+            if play[f'igrok{player}']['Профессия'] != 'hidden': users[player].massiv[0] = play[f'igrok{player}']['Профессия']
+            if play[f'igrok{player}']['Биология'] != 'hidden': users[player].massiv[1] = play[f'igrok{player}']['Биология']
+            if play[f'igrok{player}']['Здоровье'] != 'hidden': users[player].massiv[2] = play[f'igrok{player}']['Здоровье']
+            if play[f'igrok{player}']['Хобби'] != 'hidden': users[player].massiv[3] = play[f'igrok{player}']['Хобби']
+            if play[f'igrok{player}']['Фобия'] != 'hidden': users[player].massiv[6] = play[f'igrok{player}']['Фобия']
+            if play[f'igrok{player}']['Характер'] != 'hidden': users[player].massiv[4] = play[f'igrok{player}']['Характер']
+            if play[f'igrok{player}']['Факты'] != 'hidden': users[player].massiv[5] = play[f'igrok{player}']['Факты']
+            if play[f'igrok{player}']['Багаж'] != 'hidden': users[player].massiv[7] = play[f'igrok{player}']['Багаж']
             for i in range(1,max_p+1):
                 users[i].profession.config(text=play[f'igrok{i}']['Профессия'])
                 users[i].biology.config(text=play[f'igrok{i}']['Биология'])
@@ -639,7 +647,6 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 users[i].fact.config(text=play[f'igrok{i}']['Факты'])
                 users[i].bagaje.config(text=play[f'igrok{i}']['Багаж'])
                 users[i].uslovie.config(text=play[f'igrok{i}']['Условие'])
-
             users[player].characters()
 
             get_locks = requests.get(f'http://{server_ip}/rooms/{code}/uslovie/locks').json()
