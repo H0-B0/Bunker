@@ -45,6 +45,10 @@ class DealChar(BaseModel):
     player2:str
     char:str
 
+class DealAge(BaseModel):
+    player1:str
+    player2:str
+
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
 async def create_room(room_code: str, data: RoomData):
@@ -186,6 +190,24 @@ async def deal_one_char(room_code: str, data: DealChar):
     
     locks[data.player1] = data.char
     locks[data.player2] = data.char
+
+@app.post('/rooms/{room_code}/uslovie/age')
+async def deal_age(room_code:str, data:DealAge):
+    player1 = f'igrok{data.player1}'
+    player2 = f'igrok{data.player2}'
+    print(f'Приняты игроки {player1} и {player2}')
+    print(f'''Биология {player1} игрока - {roomses[room_code][player1]['Биология']}
+Биология {player2} игрока - {roomses[room_code][player2]['Биология']}''')
+    if roomses[room_code][player1]['Биология'] == 'hidden' or roomses[room_code][player2]['Биология'] == 'hidden': print('Обмен невозможен')
+    else:
+        age = roomses[room_code][player2]['Биология'].split()[1]
+        first_age = roomses[room_code][player1]['Биология'].split()
+        first_age[1] = age
+        new_biology = ' '.join(first_age)
+        roomses[room_code][player1]['Биология'] = new_biology
+        print(f'Новая биология {player1} игрока - {roomses[room_code][player1]['Биология']}')
+
+        
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8000)
