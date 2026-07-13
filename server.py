@@ -45,7 +45,7 @@ class DealChar(BaseModel):
     player2:str
     char:str
 
-class DealAge(BaseModel):
+class OnlyTwoPlayers(BaseModel):
     player1:str
     player2:str
 
@@ -192,7 +192,7 @@ async def deal_one_char(room_code: str, data: DealChar):
     locks[data.player2] = data.char
 
 @app.post('/rooms/{room_code}/uslovie/age')
-async def deal_age(room_code:str, data:DealAge):
+async def deal_age(room_code:str, data:OnlyTwoPlayers):
     player1 = f'igrok{data.player1}'
     player2 = f'igrok{data.player2}'
     print(f'Приняты игроки {player1} и {player2}')
@@ -207,7 +207,26 @@ async def deal_age(room_code:str, data:DealAge):
         roomses[room_code][player1]['Биология'] = new_biology
         print(f'Новая биология {player1} игрока - {roomses[room_code][player1]['Биология']}')
 
-        
+@app.post('/rooms/{room_code}/uslovie/child')
+async def get_child(room_code:str, data:OnlyTwoPlayers): 
+    player1 = f'igrok{data.player1}'
+    player2 = f'igrok{data.player2}'
+    print(f'Приняты игроки {player1} и {player2}')
+    print(f'''Биология {player1} игрока - {roomses[room_code][player1]['Биология']}
+Биология {player2} игрока - {roomses[room_code][player2]['Биология']}''')
+    if roomses[room_code][player2]['Биология'] == 'hidden' or roomses[room_code][player1]['Биология'] == 'hidden':
+        print('Надо было открыть сначала')
+    else:
+        bio = roomses[room_code][player2]['Биология'].split()
+        if 'Женщина' in bio[0]:
+            print(f'{player2} подходит для оплодотворения')
+            gender = f'{bio[0]} беременна,'
+            bio[0] = gender
+            new_bio = ' '.join(bio)
+            roomses[room_code][player2]['Биология'] = new_bio
+        else:
+            print('Брат, это мужик')
+
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8000)

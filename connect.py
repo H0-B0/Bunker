@@ -211,7 +211,7 @@ def connect(icon_png, icon_ico, db_path):
         "bd": 2
     }
 
-    # ========== ПРОКРУТКА (bind_all) ==========
+    # ========== ПРОКРУТКА (исправленная) ==========
     main_frame = tk.Frame(okno, bg=BG_COLOR)
     main_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -228,9 +228,9 @@ def connect(icon_png, icon_ico, db_path):
         canvas.update_idletasks()
         if content_frame.winfo_reqwidth() < canvas.winfo_width():
             canvas.itemconfig(canvas_window, width=canvas.winfo_width())
-        # Показать/скрыть скроллбар в зависимости от высоты контента
-        bbox = canvas.bbox("all")
-        if bbox and bbox[3] > okno.winfo_height():
+        
+        # Показываем скроллбар, если высота окна меньше 1000
+        if okno.winfo_height() < 1000:
             if not scrollbar.winfo_ismapped():
                 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
                 canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -246,7 +246,6 @@ def connect(icon_png, icon_ico, db_path):
         if sys.platform.startswith('win'):
             delta = -1 * (event.delta // 120)
         else:
-            # Linux: определяем по event.num (4 - вверх, 5 - вниз)
             if event.num == 4:
                 delta = -1
             elif event.num == 5:
@@ -257,7 +256,7 @@ def connect(icon_png, icon_ico, db_path):
             canvas.yview_scroll(delta, "units")
         return "break"
 
-    # Глобальная привязка ко всем окнам (включая дочерние)
+    # Глобальная привязка ко всем окнам
     if sys.platform.startswith('win'):
         okno.bind_all("<MouseWheel>", on_mousewheel)
     else:
@@ -267,8 +266,11 @@ def connect(icon_png, icon_ico, db_path):
     content_frame.bind("<Configure>", configure_scrollregion)
     canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=canvas.winfo_width()))
 
-    # Упаковываем canvas (скроллбар появится/исчезнет в configure_scrollregion)
+    # Упаковываем canvas
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    # Привязываем изменение размера окна
+    okno.bind("<Configure>", lambda e: configure_scrollregion())
     # ========== КОНЕЦ ПРОКРУТКИ ==========
 
     # Разметка
@@ -337,6 +339,7 @@ def connect(icon_png, icon_ico, db_path):
                         justify="center")
     info_text.pack(pady=(30, 20))
 
+    # Принудительное обновление прокрутки
     okno.update_idletasks()
     configure_scrollregion()
     okno.mainloop()
