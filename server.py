@@ -18,6 +18,8 @@ players = []
 
 locks = {}
 
+uslovies = []
+
 class Locks(BaseModel):
     locks:dict
 
@@ -39,15 +41,18 @@ class EveryChar(BaseModel):
     character:str
     players:list
     char_number:int
+    text:str
 
 class DealChar(BaseModel):
     player1:str
     player2:str
     char:str
+    text:str
 
 class OnlyTwoPlayers(BaseModel):
     player1:str
     player2:str
+    text:str
 
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
@@ -159,6 +164,7 @@ async def every_char(room_code:str, data:EveryChar):
                 roomses[room_code][player][data.character] = data.players[igrok-1][data.char_number]
 
     print(f'Лок обновлен: {locks}')
+    uslovies.append(data.text)
 
 @app.get('/rooms/{room_code}/uslovie/locks')
 async def get_locks(room_code:str):
@@ -171,6 +177,9 @@ async def deal_one_char(room_code: str, data: DealChar):
 
     player_one_char = roomses[room_code][data.player1][data.char]
     player_two_char = roomses[room_code][data.player2][data.char]
+
+    print(f'Характеристики игрока 1 - {player_one_char}')
+    print(f'Характеристики игрока 2 - {player_two_char}')
 
     # Если у кого-то hidden — не меняем
     if player_one_char == 'hidden' or player_two_char == 'hidden':
@@ -190,6 +199,7 @@ async def deal_one_char(room_code: str, data: DealChar):
     
     locks[data.player1] = data.char
     locks[data.player2] = data.char
+    uslovies.append(data.text)
 
 @app.post('/rooms/{room_code}/uslovie/age')
 async def deal_age(room_code:str, data:OnlyTwoPlayers):
@@ -206,6 +216,7 @@ async def deal_age(room_code:str, data:OnlyTwoPlayers):
         new_biology = ' '.join(first_age)
         roomses[room_code][player1]['Биология'] = new_biology
         print(f'Новая биология {player1} игрока - {roomses[room_code][player1]['Биология']}')
+    uslovies.append(data.text)
 
 @app.post('/rooms/{room_code}/uslovie/child')
 async def get_child(room_code:str, data:OnlyTwoPlayers): 
@@ -226,6 +237,12 @@ async def get_child(room_code:str, data:OnlyTwoPlayers):
             roomses[room_code][player2]['Биология'] = new_bio
         else:
             print('Брат, это мужик')
+    uslovies.append(data.text)
+
+@app.get('/rooms/{room_code}/uslovie/last')
+async def play_last_card(room_code:str):
+    print(uslovies[-1])
+    return uslovies[-1]
 
 
 # if __name__ == "__main__":
