@@ -53,7 +53,7 @@ def connect(icon_png, icon_ico, db_path):
                             maximum = new_maximum
                             slider1.config(to=maximum)
                             if slider1.get() > maximum:
-                                slider1.set(maximum)
+                                slider1.set(1)
                                 update_label1()
                             max_label.config(text=f"⚡ Вместимость бункера: {maximum}", fg="#00FF00")
                             status_label.config(text="✅ Бункер обнаружен", fg="#00FF00")

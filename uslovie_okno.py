@@ -7,8 +7,14 @@ import math
 # Основная функция
 def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
 
+    def clear_and_show(p):
+        # Удаляем все виджеты из окна
+        for widget in okno.winfo_children():
+            widget.destroy()
+        # Показываем выбор характеристики
+        make_chars('one_per', p)
+
     def deal_char(player1, player2, char):
-        print(1)
         if char == 'профессией': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Профессия', 'text':text})
         elif char == 'здоровьем': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Здоровье', 'text':text})
         elif char == 'хобби': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Хобби', 'text':text})
@@ -73,6 +79,8 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
                         comanda = lambda p2=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/age', json={'player1':player, 'player2':p2, 'text':text}), okno.destroy())
                     elif attr == 'Беременность':
                         comanda = lambda p2=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/child', json={'player1':player, 'player2':p2, 'text':text}), okno.destroy())
+                    elif attr == 'Любая':
+                        comanda = lambda p=player_num: clear_and_show(p)
 
                     btn = tk.Button(okno, text=player_num, **BUTTON_STYLE, command=comanda, width=3)
                     btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
@@ -81,6 +89,58 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
                 col += 1
 
             row += 1
+
+    def make_chars(attr, p=None):
+        title = tk.Label(okno,text="Выберите тип карты", **HEADING_STYLE)
+        title.grid(column=1, row=0,columnspan=2, sticky='ew')
+        if attr=='every_per': 
+            chars = [
+                ["🔧 Профессия",'Профессия',0],
+                ["🧬 Биология",'Биология',1],
+                ['🤧 Здоровье',"Здоровье",2],
+                ["🎯 Хобби","Хобби",3],
+                ["😨 Фобия","Фобия",4],
+                ["🧠 Характер","Характер",5],
+                ["📝 Факт","Факт",6],
+                ["🎒 Багаж","Багаж",7]
+            ]
+            row = 1
+            column=0
+            for label, char_name, char_index in chars:
+                btn = tk.Button(okno,text=label, **BUTTON_STYLE,
+                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/code/uslovie/every', json={'character':cn, 'players':players, 
+                'char_number':ci, 'text':text}),
+                okno.destroy()))
+                btn.grid(row=row, column=column, **PADDING)
+                column += 1
+                if column == 4:
+                    column=0
+                    row=2
+        
+        elif attr=='one_per':
+            chars = [
+                ["🔧 Профессия",'Профессия',0],
+                ["🧬 Биология",'Биология',1],
+                ['🤧 Здоровье',"Здоровье",2],
+                ["🎯 Хобби","Хобби",3],
+                ["😨 Фобия","Фобия",4],
+                ["🧠 Характер","Характер",5],
+                ["📝 Факт","Факт",6],
+                ["🎒 Багаж","Багаж",7]
+            ]
+            row = 1
+            column=0
+            for label, char_name, char_index in chars:
+                btn = tk.Button(okno,text=label, **BUTTON_STYLE,
+                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/{code}/uslovie/open', json={'player':f'igrok{p}','character':cn,  
+                'players':players, 'char_number':ci, 'text':text}),
+                okno.destroy()))
+                btn.grid(row=row, column=column, **PADDING)
+                column += 1
+                if column == 4:
+                    column=0
+                    row=2
+
 
     # Цвета и стили
     BG_COLOR = "#1A1A1A"
@@ -113,40 +173,7 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
 
 
     if text=="Выбери тип карты, который должны открыть все до конца раунда":
-        title = tk.Label(okno,text="Выберите тип карты", **HEADING_STYLE)
-        title.grid(column=1, row=0,columnspan=2, sticky='ew')
-
-        profession = tk.Button(okno,text="🔧 Профессия", **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Профессия', 'players':players, 'char_number':0, 'text':text}),okno.destroy()))
-        profession.grid(column=0,row=1, **PADDING)
-
-        biology = tk.Button(okno, text="🧬 Биология", **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Биология', 'players':players, 'char_number':1, 'text':text}),okno.destroy()))
-        biology.grid(column=1,row=1, **PADDING)
-
-        health = tk.Button(okno, text='🤧 Здоровье', **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Здоровье', 'players':players, 'char_number':2, 'text':text}),okno.destroy()))
-        health.grid(column=2, row=1, **PADDING)
-
-        hobby = tk.Button(okno, text='🎯 Хобби', **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Хобби', 'players':players, 'char_number':3, 'text':text}),okno.destroy()))
-        hobby.grid(column=3, row=1, **PADDING)
-
-        fobia = tk.Button(okno, text="😨 Фобия", **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Фобия', 'players':players, 'char_number':6, 'text':text}),okno.destroy()))
-        fobia.grid(column=0, row=2, **PADDING)
-
-        character = tk.Button(okno, text='🧠 Характер', **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Характер', 'players':players, 'char_number':4, 'text':text}),okno.destroy()))
-        character.grid(column=1, row=2, **PADDING)
-
-        fact = tk.Button(okno, text='📝 Факт', **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Факты', 'players':players, 'char_number':5, 'text':text}),okno.destroy()))
-        fact.grid(column=2, row=2, **PADDING)
-
-        bagaje = tk.Button(okno, text='🎒 Багаж', **BUTTON_STYLE
-        ,command=lambda:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':'Багаж', 'players':players, 'char_number':7, 'text':text}),okno.destroy()))
-        bagaje.grid(column=3, row=2, **PADDING)
+        make_chars('every_per')
 
     elif len(text.split()) == 2 and 'Поменяйся' in text:
         make_net('Поменяться')
@@ -162,3 +189,6 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
         print(get_in)
         okno.destroy()
         usl_okno(player, icon_png, icon_ico, players, code, ip, get_in)
+
+    elif 'любую' in text:
+        make_net('Любая')

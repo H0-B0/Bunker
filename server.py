@@ -54,6 +54,14 @@ class OnlyTwoPlayers(BaseModel):
     player2:str
     text:str
 
+class OpenChar(BaseModel):
+    player:str
+    character:str
+    players:list
+    char_number:int
+    text:str
+
+
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
 async def create_room(room_code: str, data: RoomData):
@@ -243,6 +251,18 @@ async def get_child(room_code:str, data:OnlyTwoPlayers):
 async def play_last_card(room_code:str):
     print(uslovies[-1])
     return uslovies[-1]
+
+@app.post('/rooms/{room_code}/uslovie/open')
+async def open_char(room_code:str, data:OpenChar):
+    print(f'Данные будут открыты у игрока {data.player}')
+    number = int(data.player.replace('igrok',''))
+    char = data.players[number-1][data.char_number]
+    print(f'Будет взята характеристика {data.character}')
+    print(f'Старая характеристика игрока - {roomses[room_code][data.player][data.character]}')
+    roomses[room_code][data.player][data.character] = char
+    print(f'Новая характеристика игрока - {roomses[room_code][data.player][data.character]}')
+    uslovies.append(data.text)
+    locks[data.player] = data.character
 
 
 # if __name__ == "__main__":
