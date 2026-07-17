@@ -23,9 +23,8 @@ def connect(icon_png, icon_ico, db_path):
     #Начальные данные, до заполнения
     maximum = 1
     game_code = ''
-    player = 1
+    player = 0  # ← ИЗМЕНЕНО: начальное значение 0
     server_ip = "127.0.0.1:8000"
-    
     
     def update_label1(event=None):
         nonlocal player
@@ -33,7 +32,7 @@ def connect(icon_png, icon_ico, db_path):
         value1 = int(value)
         label1.config(text=f"🧍 Ваш номер: {value1}")
         player = value1
-        check_occupied_numbers()  # Проверяем при изменении номера
+        check_occupied_numbers()
 
     #Изменения максимального числа игроков мониторя БД
     def update_maximum_from_db(event=None):
@@ -53,14 +52,20 @@ def connect(icon_png, icon_ico, db_path):
                             maximum = new_maximum
                             slider1.config(to=maximum)
                             if slider1.get() > maximum:
-                                slider1.set(1)
-                                update_label1()
+                                slider1.set(maximum)
                             max_label.config(text=f"⚡ Вместимость бункера: {maximum}", fg="#00FF00")
                             status_label.config(text="✅ Бункер обнаружен", fg="#00FF00")
                             check_occupied_numbers()
+                        
+                        # Устанавливаем слайдер на 1 и обновляем label
+                        slider1.set(1)
+                        update_label1()
                     else:
                         max_label.config(text="❌ Бункер не найден", fg="#FF0000")
                         status_label.config(text="⚠️ Проверьте код доступа", fg="#FF7B30")
+                        # Сбрасываем label на 0
+                        label1.config(text="🧍 Ваш номер: 0")
+                        player = 0
             except sq.Error as e:
                 max_label.config(text=f"💀 Ошибка системы: {e}", fg="#FF0000")
                 status_label.config(text="⚡ Критический сбой", fg="#FF0000")
@@ -69,11 +74,13 @@ def connect(icon_png, icon_ico, db_path):
             slider1.config(to=maximum)
             if slider1.get() > maximum:
                 slider1.set(maximum)
-                update_label1()
             max_label.config(text="⚡ Вместимость бункера: 0", fg="#A0A0A0")
             status_label.config(text="⏳ Ожидание кода...", fg="#A0A0A0")
             connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
             error_label.config(text="")
+            # Сбрасываем label на 0
+            label1.config(text="🧍 Ваш номер: 0")
+            player = 0
         game_code = enter.get()
 
     #Проверяет занятые номера и обновляет состояние кнопки
@@ -81,7 +88,6 @@ def connect(icon_png, icon_ico, db_path):
         code = enter.get().strip().upper()
         ip = ip_entry.get().strip()
         
-        # Если нет IP или кода — не проверяем
         if not ip or not code or len(code) < 2 or maximum == 0:
             connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
             error_label.config(text="")
@@ -116,18 +122,15 @@ def connect(icon_png, icon_ico, db_path):
             error_label.config(text="⚠️ Ошибка соединения", fg="#FF7B30")
             status_label.config(text="⚠️ Проверьте IP", fg="#FF7B30")
 
-    #Вызывается, если IP изменяется
     def on_ip_change(event=None):
         check_occupied_numbers()
 
-    # Главная функция
     def connection():
         nonlocal maximum, game_code, player, server_ip
         server_ip = ip_entry.get().strip()
         if not server_ip:
             server_ip = '127.0.0.1:8000'
         
-        # Проверяем, занят ли номер перед подключением
         code = enter.get().strip().upper()
         if code and len(code) >= 2:
             try:
@@ -141,10 +144,8 @@ def connect(icon_png, icon_ico, db_path):
                 pass
         
         okno.destroy()
-
         game_okno(player, icon_png, icon_ico, db_path, maximum, game_code, server_ip)
         
-    # Функция для возвращения в подобие main
     def back_window():
         okno.destroy()
         import podmain
@@ -173,7 +174,6 @@ def connect(icon_png, icon_ico, db_path):
 
     okno.configure(bg=BG_COLOR)
     
-    # Выбор иконки взависимости от системы
     if sys.platform.startswith('win'):
         if icon_ico and os.path.exists(icon_ico):
             okno.iconbitmap(icon_ico)
@@ -211,7 +211,7 @@ def connect(icon_png, icon_ico, db_path):
         "bd": 2
     }
 
-    # ========== ПРОКРУТКА (исправленная) ==========
+    # ========== ПРОКРУТКА ==========
     main_frame = tk.Frame(okno, bg=BG_COLOR)
     main_frame.pack(fill=tk.BOTH, expand=True)
 
@@ -229,7 +229,6 @@ def connect(icon_png, icon_ico, db_path):
         if content_frame.winfo_reqwidth() < canvas.winfo_width():
             canvas.itemconfig(canvas_window, width=canvas.winfo_width())
         
-        # Показываем скроллбар, если высота окна меньше 1000
         if okno.winfo_height() < 1000:
             if not scrollbar.winfo_ismapped():
                 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -256,7 +255,6 @@ def connect(icon_png, icon_ico, db_path):
             canvas.yview_scroll(delta, "units")
         return "break"
 
-    # Глобальная привязка ко всем окнам
     if sys.platform.startswith('win'):
         okno.bind_all("<MouseWheel>", on_mousewheel)
     else:
@@ -265,11 +263,7 @@ def connect(icon_png, icon_ico, db_path):
 
     content_frame.bind("<Configure>", configure_scrollregion)
     canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=canvas.winfo_width()))
-
-    # Упаковываем canvas
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-    # Привязываем изменение размера окна
     okno.bind("<Configure>", lambda e: configure_scrollregion())
     # ========== КОНЕЦ ПРОКРУТКИ ==========
 
@@ -314,19 +308,17 @@ def connect(icon_png, icon_ico, db_path):
     slider1.set(1)
     slider1.pack(pady=20)
 
-    label1 = tk.Label(content_frame, text="🧍 Ваш номер: 1", **LABEL_STYLE)
+    # ← ИЗМЕНЕНО: начальное значение 0
+    label1 = tk.Label(content_frame, text="🧍 Ваш номер: 0", **LABEL_STYLE)
     label1.pack(pady=15)
 
-    # --- БЛОК ПРОВЕРКИ ЗАНЯТЫХ НОМЕРОВ ---
     error_label = tk.Label(content_frame, text="", **LABEL_STYLE)
     error_label.pack(pady=5)
 
     connect_btn = tk.Button(content_frame, text="🚀 ПОДКЛЮЧИТЬСЯ", command=connection, **BUTTON_STYLE)
     connect_btn.pack(pady=40)
 
-    # Привязка событий
     slider1.bind("<ButtonRelease>", update_label1)
-    slider1.bind("<Motion>", update_label1)
     enter.bind("<KeyRelease>", update_maximum_from_db)
     enter.bind("<<Paste>>", lambda e: content_frame.after(100, update_maximum_from_db))
 
@@ -339,7 +331,10 @@ def connect(icon_png, icon_ico, db_path):
                         justify="center")
     info_text.pack(pady=(30, 20))
 
-    # Принудительное обновление прокрутки
+    # Принудительная установка слайдера на 1 и обновление лейбла (покажет 0, т.к. player=0)
+    slider1.set(1)
+    label1.config(text="🧍 Ваш номер: 0")
+    player = 0
     okno.update_idletasks()
     configure_scrollregion()
     okno.mainloop()
