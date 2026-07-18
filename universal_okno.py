@@ -291,6 +291,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                     elif char == 'Характер': self.chek_char.grid_forget()
                     elif char == 'Факты': self.chek_fact.grid_forget()
                     elif char == 'Багаж': self.chek_bag.grid_forget()
+                    elif char == 'Условие': self.chek_usl.grid_forget()
 
             # ФУНКЦИИ КНОПОК
             def right_window(self):

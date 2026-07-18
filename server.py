@@ -264,6 +264,14 @@ async def open_char(room_code:str, data:OpenChar):
     uslovies.append(data.text)
     locks[data.player] = data.character
 
+@app.post('/rooms/{room_code}/uslovie/zapret')
+async def close_uslovie(room_code:str, data:Player):
+    igrok = f'igrok{data.player}'
+    print(f'Принят игрок {igrok}')
+    locks[igrok] = 'Условие'
+    print(f'У игрока {igrok} заблокировано условие')
+
+
 
 # if __name__ == "__main__":
 #     uvicorn.run(app, host="0.0.0.0", port=8000)

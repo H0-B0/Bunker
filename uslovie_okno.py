@@ -81,7 +81,8 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
                         comanda = lambda p2=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/child', json={'player1':player, 'player2':p2, 'text':text}), okno.destroy())
                     elif attr == 'Любая':
                         comanda = lambda p=player_num: clear_and_show(p)
-
+                    elif attr == 'Запрет':
+                        comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/zapret', json={'player':p}), okno.destroy())
                     btn = tk.Button(okno, text=player_num, **BUTTON_STYLE, command=comanda, width=3)
                     btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
                     buttons.append(btn)
@@ -192,3 +193,6 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
 
     elif 'любую' in text:
         make_net('Любая')
+    
+    elif 'Запрети' in text:
+        make_net('Запрет')
