@@ -204,7 +204,7 @@ async def deal_one_char(room_code: str, data: DealChar):
 
     print(f'''Полный список:
 {roomses[room_code]}''')
-    
+
     locks[data.player1] = data.char
     locks[data.player2] = data.char
     uslovies.append(data.text)
@@ -227,7 +227,7 @@ async def deal_age(room_code:str, data:OnlyTwoPlayers):
     uslovies.append(data.text)
 
 @app.post('/rooms/{room_code}/uslovie/child')
-async def get_child(room_code:str, data:OnlyTwoPlayers): 
+async def get_child(room_code:str, data:OnlyTwoPlayers):
     player1 = f'igrok{data.player1}'
     player2 = f'igrok{data.player2}'
     print(f'Приняты игроки {player1} и {player2}')
@@ -270,6 +270,26 @@ async def close_uslovie(room_code:str, data:Player):
     print(f'Принят игрок {igrok}')
     locks[igrok] = 'Условие'
     print(f'У игрока {igrok} заблокировано условие')
+
+@app.post('/rooms/{room_code}/uslovie/gender')
+async def change_gender(room_code:str, data:Player):
+    player = f'igrok{data.player}'
+    if roomses[room_code][player]['Биология'] == 'hidden':
+        print('Биология скрыта. ГГ')
+        return
+    else:
+        bio = roomses[room_code][player]['Биология']
+        if 'Мужчина' in bio:
+            bio = bio.replace('Мужчина', 'Женщина')
+            print('Трансформация успешна')
+        elif 'Женщина' in bio:
+            if 'беременна' in bio:
+                print('Трансформация невозможна, беременных мужиков не бывает')
+            else:
+                bio = bio.replace('Женщина', 'Мужчина')
+                print('Трансформация получилась')
+
+
 
 
 

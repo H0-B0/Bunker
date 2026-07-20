@@ -37,9 +37,10 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
                 mesto[2].append(i)
 
         # Убираем из списков самого игрока
-        for i in mesto:
-            if player in i:
-                i.remove(player)
+        if attr != 'Пол':
+            for i in mesto:
+                if player in i:
+                    i.remove(player)
 
         # Настраиваем 9 колонок с одинаковым весом (для центрирования)
         for i in range(9):
@@ -83,6 +84,8 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
                         comanda = lambda p=player_num: clear_and_show(p)
                     elif attr == 'Запрет':
                         comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/zapret', json={'player':p}), okno.destroy())
+                    elif attr == 'Пол':
+                        comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/gender', json={'player':p}), okno.destroy)
                     btn = tk.Button(okno, text=player_num, **BUTTON_STYLE, command=comanda, width=3)
                     btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
                     buttons.append(btn)
@@ -196,3 +199,6 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
     
     elif 'Запрети' in text:
         make_net('Запрет')
+
+    elif 'пол' in text:
+        make_net('Пол')
