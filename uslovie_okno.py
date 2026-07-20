@@ -112,7 +112,7 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
             column=0
             for label, char_name, char_index in chars:
                 btn = tk.Button(okno,text=label, **BUTTON_STYLE,
-                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/code/uslovie/every', json={'character':cn, 'players':players, 
+                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':cn, 'players':players, 
                 'char_number':ci, 'text':text}),
                 okno.destroy()))
                 btn.grid(row=row, column=column, **PADDING)
