@@ -270,6 +270,8 @@ async def close_uslovie(room_code:str, data:Player):
     print(f'Принят игрок {igrok}')
     locks[igrok] = 'Условие'
     print(f'У игрока {igrok} заблокировано условие')
+    uslovies.append("Запрети использовать карту условия")
+
 
 @app.post('/rooms/{room_code}/uslovie/gender')
 async def change_gender(room_code:str, data:Player):
@@ -280,17 +282,23 @@ async def change_gender(room_code:str, data:Player):
     else:
         bio = roomses[room_code][player]['Биология']
         if 'Мужчина' in bio:
-            bio = bio.replace('Мужчина', 'Женщина')
+            if 'гей' in bio:
+                roomses[room_code][player]['Биология'] = bio.replace('Мужчина-гей', 'Женщина-лесбиянка')
+            else:
+                roomses[room_code][player]['Биология'] = bio.replace('Мужчина', 'Женщина')
+
             print('Трансформация успешна')
         elif 'Женщина' in bio:
             if 'беременна' in bio:
                 print('Трансформация невозможна, беременных мужиков не бывает')
             else:
-                bio = bio.replace('Женщина', 'Мужчина')
-                print('Трансформация получилась')
-
-
-
+                if 'лесбиянка' in bio:
+                    roomses[room_code][player]['Биология'] = bio.replace('Женщина-лесбиянка', 'Мужчина-гей')
+                else:
+                    roomses[room_code][player]['Биология'] = bio.replace('Женщина', 'Мужчина')
+                    print('Трансформация получилась')
+        locks[player] = 'Биология'
+    uslovies.append("Измени пол себе или другому игроку")
 
 
 # if __name__ == "__main__":
