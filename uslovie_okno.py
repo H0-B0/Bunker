@@ -5,7 +5,8 @@ import requests
 import math
 
 # Основная функция
-def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
+def usl_okno(player, icon_png, icon_ico, players, code, ip, text, array):
+    print(array)
 
     def clear_and_show(p):
         # Удаляем все виджеты из окна
@@ -28,7 +29,7 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
         # Разбиваем игроков на строки по 4 (1-4, 5-8, 9-12)
         mesto = [[],[],[]]
 
-        for i in range(1, len(players) + 1):
+        for i in array:
             if i <= 4:
                 mesto[0].append(i)
             elif i <= 8:
@@ -86,6 +87,8 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
                         comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/zapret', json={'player':p}), okno.destroy())
                     elif attr == 'Пол':
                         comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/gender', json={'player':p}), okno.destroy())
+                    elif attr == 'Убрать':
+                        comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/voice_a', json={'player1':player,'player2':p}), print(player, p), okno.destroy())
                     btn = tk.Button(okno, text=player_num, **BUTTON_STYLE, command=comanda, width=3)
                     btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
                     buttons.append(btn)
@@ -202,3 +205,6 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
 
     elif 'пол' in text:
         make_net('Пол')
+
+    elif text == 'Убрать игрока':
+        make_net('Убрать')

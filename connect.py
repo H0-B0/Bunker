@@ -6,6 +6,7 @@ import os
 import sys
 import requests
 
+
 # Нахождение БД и иконок
 def get_resource_path(relative_path):
     try:
@@ -14,18 +15,19 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+
 # Основная функция
 def connect(icon_png, icon_ico, db_path):
-    
+
     print(f"connect: db_path = {db_path}")
     print(f"connect: db exists = {os.path.exists(db_path) if db_path else False}")
-    
-    #Начальные данные, до заполнения
+
+    # Начальные данные, до заполнения
     maximum = 1
-    game_code = ''
+    game_code = ""
     player = 0  # ← ИЗМЕНЕНО: начальное значение 0
     server_ip = "127.0.0.1:8000"
-    
+
     def update_label1(event=None):
         nonlocal player
         value = slider1.get()
@@ -34,18 +36,18 @@ def connect(icon_png, icon_ico, db_path):
         player = value1
         check_occupied_numbers()
 
-    #Изменения максимального числа игроков мониторя БД
+    # Изменения максимального числа игроков мониторя БД
     def update_maximum_from_db(event=None):
         nonlocal maximum, game_code
         code = enter.get().strip().upper()
-        
+
         if code and len(code) >= 2:
             try:
                 with sq.connect(db_path) as dannie:
                     cur = dannie.cursor()
                     cur.execute("SELECT max_players FROM rooms WHERE code = ?", (code,))
                     data = cur.fetchone()
-                    
+
                     if data:
                         new_maximum = data[0]
                         if new_maximum != maximum:
@@ -53,16 +55,22 @@ def connect(icon_png, icon_ico, db_path):
                             slider1.config(to=maximum)
                             if slider1.get() > maximum:
                                 slider1.set(maximum)
-                            max_label.config(text=f"⚡ Вместимость бункера: {maximum}", fg="#00FF00")
-                            status_label.config(text="✅ Бункер обнаружен", fg="#00FF00")
+                            max_label.config(
+                                text=f"⚡ Вместимость бункера: {maximum}", fg="#00FF00"
+                            )
+                            status_label.config(
+                                text="✅ Бункер обнаружен", fg="#00FF00"
+                            )
                             check_occupied_numbers()
-                        
+
                         # Устанавливаем слайдер на 1 и обновляем label
                         slider1.set(1)
                         update_label1()
                     else:
                         max_label.config(text="❌ Бункер не найден", fg="#FF0000")
-                        status_label.config(text="⚠️ Проверьте код доступа", fg="#FF7B30")
+                        status_label.config(
+                            text="⚠️ Проверьте код доступа", fg="#FF7B30"
+                        )
                         # Сбрасываем label на 0
                         label1.config(text="🧍 Ваш номер: 0")
                         player = 0
@@ -83,29 +91,35 @@ def connect(icon_png, icon_ico, db_path):
             player = 0
         game_code = enter.get()
 
-    #Проверяет занятые номера и обновляет состояние кнопки
+    # Проверяет занятые номера и обновляет состояние кнопки
     def check_occupied_numbers():
         code = enter.get().strip().upper()
         ip = ip_entry.get().strip()
-        
+
         if not ip or not code or len(code) < 2 or maximum == 0:
             connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
             error_label.config(text="")
             status_label.config(text="⏳ Ожидание данных...", fg="#A0A0A0")
             return
-        
+
         try:
             response = requests.get(f"http://{ip}/rooms/{code}/players", timeout=2)
             if response.status_code == 200:
                 occupied = response.json()
                 current_number = int(slider1.get())
-                
+
                 if current_number in occupied:
-                    connect_btn.config(state="disabled", text="❌ Номер занят", bg="#444444")
-                    error_label.config(text="⚠️ Номер занят другим игроком!", fg="#FF0000")
+                    connect_btn.config(
+                        state="disabled", text="❌ Номер занят", bg="#444444"
+                    )
+                    error_label.config(
+                        text="⚠️ Номер занят другим игроком!", fg="#FF0000"
+                    )
                     status_label.config(text="⚠️ Выберите другой номер", fg="#FF7B30")
                 else:
-                    connect_btn.config(state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG)
+                    connect_btn.config(
+                        state="normal", text="🚀 ПОДКЛЮЧИТЬСЯ", bg=BUTTON_BG
+                    )
                     error_label.config(text="✅ Номер свободен", fg="#00FF00")
                     status_label.config(text="✅ Можно подключаться", fg="#00FF00")
             else:
@@ -129,39 +143,44 @@ def connect(icon_png, icon_ico, db_path):
         nonlocal maximum, game_code, player, server_ip
         server_ip = ip_entry.get().strip()
         if not server_ip:
-            server_ip = '127.0.0.1:8000'
-        
+            server_ip = "127.0.0.1:8000"
+
         code = enter.get().strip().upper()
         if code and len(code) >= 2:
             try:
-                response = requests.get(f"http://{server_ip}/rooms/{code}/players", timeout=2)
+                response = requests.get(
+                    f"http://{server_ip}/rooms/{code}/players", timeout=2
+                )
                 if response.status_code == 200:
                     occupied = response.json()
                     if player in occupied:
-                        error_label.config(text="❌ Этот номер уже занят!", fg="#FF0000")
+                        error_label.config(
+                            text="❌ Этот номер уже занят!", fg="#FF0000"
+                        )
                         return
             except:
                 pass
-        
+
         okno.destroy()
         game_okno(player, icon_png, icon_ico, db_path, maximum, game_code, server_ip)
-        
+
     def back_window():
         okno.destroy()
         import podmain
+
         podmain.podmaini(icon_png, icon_ico, db_path)
 
     # Создание окна
     okno = tk.Tk()
-    okno.geometry('1200x1000')
-    okno.title('Бункер')
-    if sys.platform.startswith('win'):
-        okno.state('zoomed')
+    okno.geometry("1200x1000")
+    okno.title("Бункер")
+    if sys.platform.startswith("win"):
+        okno.state("zoomed")
     else:
         try:
-            okno.attributes('-zoomed', True)
+            okno.attributes("-zoomed", True)
         except:
-            okno.state('normal')
+            okno.state("normal")
 
     # Стиль апокалипсиса
     BG_COLOR = "#1A1A1A"
@@ -173,8 +192,8 @@ def connect(icon_png, icon_ico, db_path):
     ENTRY_FG = "#FFFFFF"
 
     okno.configure(bg=BG_COLOR)
-    
-    if sys.platform.startswith('win'):
+
+    if sys.platform.startswith("win"):
         if icon_ico and os.path.exists(icon_ico):
             okno.iconbitmap(icon_ico)
     else:
@@ -186,9 +205,20 @@ def connect(icon_png, icon_ico, db_path):
                 pass
 
     # Стили
-    TITLE_STYLE = {"font": ("Courier New", 28, "bold"), "bg": BG_COLOR, "fg": ACCENT_COLOR}
+    TITLE_STYLE = {
+        "font": ("Courier New", 28, "bold"),
+        "bg": BG_COLOR,
+        "fg": ACCENT_COLOR,
+    }
     LABEL_STYLE = {"font": ("Arial", 14, "bold"), "bg": BG_COLOR, "fg": TEXT_COLOR}
-    ENTRY_STYLE = {"font": ("Courier New", 16, "bold"), "bg": ENTRY_BG, "fg": ENTRY_FG, "justify": "center", "bd": 2, "relief": "sunken"}
+    ENTRY_STYLE = {
+        "font": ("Courier New", 16, "bold"),
+        "bg": ENTRY_BG,
+        "fg": ENTRY_FG,
+        "justify": "center",
+        "bd": 2,
+        "relief": "sunken",
+    }
     BUTTON_STYLE = {
         "font": ("Arial", 16, "bold"),
         "width": 20,
@@ -198,7 +228,7 @@ def connect(icon_png, icon_ico, db_path):
         "activebackground": BUTTON_ACTIVE,
         "activeforeground": TEXT_COLOR,
         "relief": "raised",
-        "bd": 3
+        "bd": 3,
     }
     BACK_BUTTON_STYLE = {
         "font": ("Arial", 14),
@@ -208,7 +238,7 @@ def connect(icon_png, icon_ico, db_path):
         "activebackground": BUTTON_ACTIVE,
         "activeforeground": TEXT_COLOR,
         "relief": "raised",
-        "bd": 2
+        "bd": 2,
     }
 
     # ========== ПРОКРУТКА ==========
@@ -217,7 +247,9 @@ def connect(icon_png, icon_ico, db_path):
 
     canvas = tk.Canvas(main_frame, bg=BG_COLOR, highlightthickness=0)
     scrollbar = tk.Scrollbar(main_frame, orient=tk.VERTICAL, command=canvas.yview)
-    scrollbar.configure(bg=BG_COLOR, troughcolor=BG_COLOR, activebackground=BG_COLOR, width=0)
+    scrollbar.configure(
+        bg=BG_COLOR, troughcolor=BG_COLOR, activebackground=BG_COLOR, width=0
+    )
 
     content_frame = tk.Frame(canvas, bg=BG_COLOR)
     canvas_window = canvas.create_window((0, 0), window=content_frame, anchor="nw")
@@ -228,7 +260,7 @@ def connect(icon_png, icon_ico, db_path):
         canvas.update_idletasks()
         if content_frame.winfo_reqwidth() < canvas.winfo_width():
             canvas.itemconfig(canvas_window, width=canvas.winfo_width())
-        
+
         if okno.winfo_height() < 1000:
             if not scrollbar.winfo_ismapped():
                 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -242,7 +274,7 @@ def connect(icon_png, icon_ico, db_path):
     def on_mousewheel(event):
         if not scrollbar.winfo_ismapped():
             return
-        if sys.platform.startswith('win'):
+        if sys.platform.startswith("win"):
             delta = -1 * (event.delta // 120)
         else:
             if event.num == 4:
@@ -255,33 +287,40 @@ def connect(icon_png, icon_ico, db_path):
             canvas.yview_scroll(delta, "units")
         return "break"
 
-    if sys.platform.startswith('win'):
+    if sys.platform.startswith("win"):
         okno.bind_all("<MouseWheel>", on_mousewheel)
     else:
         okno.bind_all("<Button-4>", on_mousewheel)
         okno.bind_all("<Button-5>", on_mousewheel)
 
     content_frame.bind("<Configure>", configure_scrollregion)
-    canvas.bind("<Configure>", lambda e: canvas.itemconfig(canvas_window, width=canvas.winfo_width()))
+    canvas.bind(
+        "<Configure>",
+        lambda e: canvas.itemconfig(canvas_window, width=canvas.winfo_width()),
+    )
     canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
     okno.bind("<Configure>", lambda e: configure_scrollregion())
     # ========== КОНЕЦ ПРОКРУТКИ ==========
 
     # Разметка
-    title_label = tk.Label(content_frame, text="🔌 ПОДКЛЮЧЕНИЕ К КОМНАТЕ 🔌", **TITLE_STYLE)
+    title_label = tk.Label(
+        content_frame, text="🔌 ПОДКЛЮЧЕНИЕ К КОМНАТЕ 🔌", **TITLE_STYLE
+    )
     title_label.pack(pady=(30, 20))
 
     back = tk.Button(okno, text="←", **BACK_BUTTON_STYLE, command=back_window)
     back.place(x=20, y=20)
 
-    ip_label = tk.Label(content_frame, text="🌐 IP АДРЕС СЕРВЕРА (IP:PORT)", **LABEL_STYLE)
-    ip_label.pack(pady=(10,5))
+    ip_label = tk.Label(
+        content_frame, text="🌐 IP АДРЕС СЕРВЕРА (IP:PORT)", **LABEL_STYLE
+    )
+    ip_label.pack(pady=(10, 5))
     ip_entry = tk.Entry(content_frame, **ENTRY_STYLE, width=25)
     ip_entry.pack(pady=5)
     ip_entry.bind("<KeyRelease>", on_ip_change)
     ip_entry.bind("<<Paste>>", lambda e: okno.after(100, on_ip_change))
 
-    vvod = tk.Label(content_frame, text='🔑 ВВЕДИТЕ КОД КОМНАТЫ (CAPS)', **LABEL_STYLE)
+    vvod = tk.Label(content_frame, text="🔑 ВВЕДИТЕ КОД КОМНАТЫ (CAPS)", **LABEL_STYLE)
     vvod.pack(pady=(40, 10))
     enter = tk.Entry(content_frame, **ENTRY_STYLE, width=20)
     enter.pack(pady=15)
@@ -297,14 +336,23 @@ def connect(icon_png, icon_ico, db_path):
     player_label.pack(pady=(30, 10))
 
     style = ttk.Style()
-    style.configure("Horizontal.TScale", 
-                   background=BG_COLOR,
-                   troughcolor=BUTTON_BG,
-                   bordercolor=ACCENT_COLOR,
-                   darkcolor=ACCENT_COLOR,
-                   lightcolor=ACCENT_COLOR)
+    style.configure(
+        "Horizontal.TScale",
+        background=BG_COLOR,
+        troughcolor=BUTTON_BG,
+        bordercolor=ACCENT_COLOR,
+        darkcolor=ACCENT_COLOR,
+        lightcolor=ACCENT_COLOR,
+    )
 
-    slider1 = ttk.Scale(content_frame, from_=1, to=maximum, orient="horizontal", length=400, style="Horizontal.TScale")
+    slider1 = ttk.Scale(
+        content_frame,
+        from_=1,
+        to=maximum,
+        orient="horizontal",
+        length=400,
+        style="Horizontal.TScale",
+    )
     slider1.set(1)
     slider1.pack(pady=20)
 
@@ -315,20 +363,24 @@ def connect(icon_png, icon_ico, db_path):
     error_label = tk.Label(content_frame, text="", **LABEL_STYLE)
     error_label.pack(pady=5)
 
-    connect_btn = tk.Button(content_frame, text="🚀 ПОДКЛЮЧИТЬСЯ", command=connection, **BUTTON_STYLE)
+    connect_btn = tk.Button(
+        content_frame, text="🚀 ПОДКЛЮЧИТЬСЯ", command=connection, **BUTTON_STYLE
+    )
     connect_btn.pack(pady=40)
 
     slider1.bind("<ButtonRelease>", update_label1)
     enter.bind("<KeyRelease>", update_maximum_from_db)
     enter.bind("<<Paste>>", lambda e: content_frame.after(100, update_maximum_from_db))
 
-    info_text = tk.Label(content_frame, 
-                        text="⚠️ Введите код комнаты и выберите свой номер\n"
-                             "Система автоматически проверит доступность",
-                        font=("Arial", 12, "italic"),
-                        bg=BG_COLOR,
-                        fg="#A0A0A0",
-                        justify="center")
+    info_text = tk.Label(
+        content_frame,
+        text="⚠️ Введите код комнаты и выберите свой номер\n"
+        "Система автоматически проверит доступность",
+        font=("Arial", 12, "italic"),
+        bg=BG_COLOR,
+        fg="#A0A0A0",
+        justify="center",
+    )
     info_text.pack(pady=(30, 20))
 
     # Принудительная установка слайдера на 1 и обновление лейбла (покажет 0, т.к. player=0)
@@ -338,6 +390,3 @@ def connect(icon_png, icon_ico, db_path):
     okno.update_idletasks()
     configure_scrollregion()
     okno.mainloop()
-
-if __name__ == '__main__':
-    connect()

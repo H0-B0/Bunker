@@ -26,9 +26,8 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
     print(f"okno4: db_path = {db_path}")
     print(f"okno4: db exists = {os.path.exists(db_path) if db_path else False}")
     print(f"okno4: server_ip = {server_ip}")
-
-    #Если код комнаты пустой(То есть она создается), то берем рандомную по количеству игроков и извлекаем из нее данные
     try:
+        #Если код комнаты пустой(То есть она создается), то берем рандомную по количеству игроков и извлекаем из нее данные
         with sq.connect(db_path) as dannie:
             cur = dannie.cursor()
             if code == '':
@@ -78,24 +77,29 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
         # Список игроков и начальных данных
         play = {}
         locks = {}
+        voices = {}
         for i in range(1,max_p+1):
             play[f"igrok{i}"] = {
-"Профессия":"hidden",
-"Биология":"hidden",
-"Здоровье":"hidden",
-"Хобби":"hidden",
-"Фобия":"hidden",
-"Характер":"hidden",
-"Факты":"hidden",
-"Багаж":"hidden",
-"Условие":"hidden"}
-            locks[f'igrok{i}'] = {}
+    "Профессия":"hidden",
+    "Биология":"hidden",
+    "Здоровье":"hidden",
+    "Хобби":"hidden",
+    "Фобия":"hidden",
+    "Характер":"hidden",
+    "Факты":"hidden",
+    "Багаж":"hidden",
+    "Условие":"hidden"}
+            locks[f'igrok{i}'] = ''
+            voices[i] = 0
 
         #Закидываем на сервер информацию о игроках
         requests.post(f'http://{server_ip}/rooms/{code}', json={'play':play})
 
         #Закидываем локи на сервер
         requests.post(f'http://{server_ip}/rooms/{code}/locks', json={'locks':locks})
+
+        #Закидываем изначальные голоса на сервер
+        requests.post(f'http://{server_ip}/rooms/{code}/voicess', json={'play':voices})
 
         # СТИЛЬ АПОКАЛИПСИСА
         BG_COLOR = "#1A1A1A"  # Тёмный фон
@@ -122,7 +126,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
             "justify":"left"
         }
         PADDING = {"pady": 5}
-        IZGON_STYLE = {"font": ("Arial", 12, "bold"), "bg": BG_COLOR, "fg": RED_ACCENT}
+        IZGON_STYLE = {"font": ("Arial", 12, "bold"), "fg": ACCENT_COLOR}
         SPECIAL_BUTTON_STYLE = {"font": ("Arial", 16), "bg": "#4A4A2A", "fg": "yellow", "width": 3, "height": 1}
 
         # Создаем главное окно
@@ -247,6 +251,13 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 window.destroy()
             window.destroy()
 
+        last = 0
+        for_schet = 0
+
+        golosa = 0
+
+        players_now = len(play)
+
         # Класс игрока
         class Player:
             # Бинд главных переменых
@@ -279,6 +290,13 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 self.bag = tk.IntVar()
                 self.usl = tk.IntVar()
 
+                # Сила голоса игрока
+                self.voice = 1
+                # Номер игрока в которого вкинут голос
+                self.player = 0
+                # Массив для заполнения окна голосования игроками
+                self.igroks = []
+
             def del_check(self,char):
                 if char == {}:
                     pass
@@ -301,25 +319,24 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                     right2(room_info[0][1], icon_png, icon_ico, db_path)
 
             def not_goden(self):
-                hz = self.yes_or_not.cget('text')
-                if hz == '':
-                    self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
-                    self.izgnanie.config(text='ВЕРНУТЬ',fg="#00E400")
-                    requests.post(f'http://{server_ip}/rooms/{code}/del_player', json={'player':self.number})
-                elif hz == 'НЕ ГОДЕН':
-                    self.yes_or_not.config(text='', fg=RED_ACCENT)
-                    self.izgnanie.config(text='ИЗГНАТЬ',fg=RED_ACCENT)
-                    requests.post(f'http://{server_ip}/rooms/{code}/add_player', json={'player':self.number})
-                zamena()
+                hz = self.izgnanie.cget('text')
+                if hz == 'ПРОГОЛОСОВАТЬ':
+                    self.izgnanie.config(text='УБРАТЬ ГОЛОС',fg="#00E400")
+                    usl_okno(player, icon_png, icon_ico, players, code, server_ip,'Убрать игрока', array)
+                elif hz == 'УБРАТЬ ГОЛОС':
+                    self.izgnanie.config(text='ПРОГОЛОСОВАТЬ',fg=RED_ACCENT)
+                    requests.post(f'http://{server_ip}/rooms/{code}/voice_d', json={'player':self.number})
+
+            def real_izgoy(self):
+                self.izgnanie.grid_forget()
 
             def activate_usl(self):
                 self.chek_usl.grid_forget()
                 self.act_usl.grid_forget()
-                usl_okno(player, icon_png, icon_ico, players, code, server_ip,self.uslovie.cget('text'))
+                usl_okno(player, icon_png, icon_ico, players, code, server_ip,self.uslovie.cget('text'), array)
 
             def _vikid(self):
                 self.yes_or_not.config(text='НЕ ГОДЕН', fg=RED_ACCENT)
-                self.izgnanie.config(text='ВЕРНУТЬ',fg="#00E400")
 
             def prof_button(self):
                 if self.prof.get() == 0:
@@ -390,6 +407,27 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 # Теперь создаем container1 и размещаем его в сетке page1
                 container = tk.Frame(page, bg=BG_COLOR)
                 container.grid(row=1, column=1, sticky="nsew", padx=20, pady=15)
+
+                # ========== ФРЕЙМ ГОЛОСОВАНИЯ (СЛЕВА, ПО ЦЕНТРУ) ==========
+
+                VOTE_BG = "#2A2A2A"  # Чуть светлее основного фона
+
+                self.vote_frame = tk.Frame(container, bg=VOTE_BG, relief="ridge", bd=2, width=150)
+
+                # Строки для игроков (7 строк)
+                for i in range(1, len(play)+1):
+
+                    lbl = tk.Label(self.vote_frame, text=f"Игрок {i}", **IZGON_STYLE, bg=VOTE_BG)
+                    lbl.grid(row=i, column=0, sticky='w', padx=10, pady=5)
+
+                    igrok = tk.Label(self.vote_frame, text=list(voices.values())[i-1], **IZGON_STYLE, bg=VOTE_BG)
+                    self.igroks.append(igrok)
+                    igrok.grid(row=i, column=1, sticky='e', pady=5)
+
+                self.kolVo_golosov = tk.Label(self.vote_frame, text=f'{golosa} из {players_now}', **IZGON_STYLE, bg=VOTE_BG)
+                self.kolVo_golosov.grid(row=len(play)+1, column=0, pady=5)
+
+                # ===========================================================
 
                 container.columnconfigure(0, weight=1)
                 container.columnconfigure(1, weight=2)  # Центральная колонка с контентом
@@ -508,9 +546,8 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                                     command=lambda:left(room_info[0][1], icon_png, icon_ico, db_path))
                 left_button.grid(column=0,row=19)
 
-                self.izgnanie = tk.Button(container, text='ИЗГНАТЬ', font=("Arial", 12, "bold"), bg=BG_COLOR, fg=RED_ACCENT,
-                                relief="raised", bd=2, command=self.not_goden,width=8)
-                self.izgnanie.grid(column=4,row=0,padx=(0,10))
+                self.izgnanie = tk.Button(container, text='ПРОГОЛОСОВАТЬ', font=("Arial", 12, "bold"), bg=BG_COLOR, fg=RED_ACCENT,
+                                relief="raised", bd=2, command=self.not_goden,width=16)
 
                 self.yes_or_not = tk.Label(container, text='', **ZAGOLOVOK_STYLE, fg=RED_ACCENT)
                 self.yes_or_not.grid(column=1,row=19)
@@ -550,6 +587,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 self.chek_fact.grid(column=2,row=14,sticky='w',padx=(0,20))
                 self.chek_bag.grid(column=2,row=16,sticky='w',padx=(0,20))
                 self.chek_usl.grid(column=2,row=18,sticky='w',padx=(0,20))
+                self.izgnanie.grid(column=4,row=0,padx=(0,10))
 
         #Инициализация игроков и страниц
         users = {}
@@ -628,6 +666,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
 
         # Обновление характеристик других игроков, если они их открыли
         def sws():
+            nonlocal last
             get_in = requests.get(f"http://{server_ip}/rooms/{code}")
             play = get_in.json()
             if play[f'igrok{player}']['Профессия'] != 'hidden': users[player].massiv[0] = play[f'igrok{player}']['Профессия']
@@ -648,11 +687,14 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 users[i].fact.config(text=play[f'igrok{i}']['Факты'])
                 users[i].bagaje.config(text=play[f'igrok{i}']['Багаж'])
                 users[i].uslovie.config(text=play[f'igrok{i}']['Условие'])
+                users[i]
             users[player].characters()
 
             get_locks = requests.get(f'http://{server_ip}/rooms/{code}/uslovie/locks').json()
             for i in range(1,max_p+1):
                 users[i].del_check(get_locks[f'igrok{i}'])
+
+            last = requests.get(f'http://{server_ip}/rooms/{code}/last').json()
 
             window.after(1000, sws)
 
@@ -661,12 +703,53 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
         # Обновляем количество изгнанных игроков
         def pau():
             nonlocal array
-            get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok")
-            array = get_in.json()
-            for i in range(1,max_p+1):
-                if i not in array:
-                    users[i]._vikid()
+            nonlocal golosa
+            nonlocal voices
+
+            golosa = requests.get(f'http://{server_ip}/rooms/{code}/igroks').json()
+
+            get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok").json()
+            if len(get_in)<len(array):
+                print(get_in)
+                for i in range(1,max_p+1):
+                    users[i].izgnanie.config(text='ПРОГОЛОСОВАТЬ',fg=RED_ACCENT)
+                    if i not in get_in and i != last and last > 0:
+                        users[i]._vikid()
+                        users[i].real_izgoy()
+                    elif i not in get_in:
+                        users[i]._vikid()
+            array = get_in
+
             zamena()
+
+            voices = requests.get(f'http://{server_ip}/rooms/{code}/voice_p').json()
+            voice_keys = list(map(int,voices.keys()))
+            voice_values = list(voices.values())
+
+            new_voices = {}
+
+            for key, value in zip(voice_keys, voice_values):
+                new_voices[key] = value
+            voices = new_voices
+
+            for player in users:
+                for i in voice_keys:
+                    users[player].igroks[i-1].config(text=voices[i])
+
+                if any(s in [1,2,3,4,5,6,7,8,9] for s in voice_values):
+                    users[player].vote_frame.grid(row=6, column=0, rowspan=11, sticky="new", pady=10)
+                    if last == 0:
+                        users[player].kolVo_golosov.config(text=f'{golosa} из {len(array)}')
+                    elif last > 1:
+                        users[player].kolVo_golosov.config(text=f'{golosa} из {len(array)+1}')
+                else:
+                    users[player].vote_frame.grid_forget()
+
+                for voice in range(len(voice_values)):
+                    if voice_values[voice] == 0:
+                        continue
+                    elif voice_values[voice] == '':
+                        users[player].igroks[voice].config(text='Изгнан')
 
             window.after(1000, pau)
         

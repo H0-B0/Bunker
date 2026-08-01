@@ -10,15 +10,32 @@ from pydantic import BaseModel
 
 app = FastAPI()
 
+# Игроки которые проголосовали
+golosa = 0
+
+# Сейчас бесполезно, но когда будет глобальный сервер, будет полезно. Будет выглядеть Код:Вся инфа комнаты
 roomses = {}
 
+#Список неизгнанных игроков
 array = []
 
+#Цифры - игроки, за чьи номера нельзя встать
 players = []
 
+#Локи - Тут у игроков будет последний лок. Напротив номера игрока заблокированная характеристика удаляющая чекбокс
 locks = {}
 
+#Все условия сыгранные игроками
 uslovies = []
+
+#Игрок:Количество голосов
+voices = {}
+
+#Логи, где записано какой игрок за какого проголосовал
+logs = []
+
+#Переменная последнего изгнанного игрока
+last = 0
 
 class Locks(BaseModel):
     locks:dict
@@ -61,6 +78,9 @@ class OpenChar(BaseModel):
     char_number:int
     text:str
 
+class AddVoice(BaseModel):
+    player1:int
+    player2:int
 
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
@@ -69,6 +89,16 @@ async def create_room(room_code: str, data: RoomData):
     print(f'Данные: {data.play}')
     roomses[room_code] = data.play
     return {"status": "ok", "message": f"Комната {room_code} успешно создана"}
+
+@app.post('/rooms/{room_code}/voicess')
+async def post_voices(room_code:str, data:RoomData):
+    global voices
+    voices = {}
+    keys = list(data.play.keys())
+    values = list(data.play.values())
+    for key in range(len(keys)):
+        voices[int(keys[key])] = int(values[key])
+    print(voices)
 
 @app.post('/rooms/{room_code}/locks')
 async def add_locks(room_code:str, data:Locks):
@@ -108,24 +138,103 @@ async def get_array():
     print(f'Отправлен список {array}')
     return array
 
-# Механики для изгнания/ возвращения игроков
-@app.post('/rooms/{room_code}/add_player')
-async def addPlayer(room_code:str, data:Player):
-    global array
-    if data.player not in array:
-        array.append(data.player)
-        print(data.player)
-        print(array)
 
-@app.post('/rooms/{room_code}/del_player')
-async def delPlayer(room_code:str, data:Player):
-    global array
+async def izgnat():
+    global last
+    global logs
+    global golosa
+    keys = list(voices.keys())
+    first_values = list(voices.values())
+    values = []
     try:
-        array.remove(data.player)
-    except Exception as e:
-        pass
-    print(data.player)
-    print(array)
+        for i in first_values:
+            values.append(int(i))
+    except ValueError: 
+        values.append(0)
+    max_voice = max(values)
+    count = values.count(max_voice)
+    if last > 1:
+        if len(array)+1 == golosa:
+            if count == 1:
+                array.remove(keys[values.index(max_voice)])
+                print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
+                print(f'Эррей сейчас - {array}')
+                golosa = 0
+                logs = []
+                last = keys[values.index(max_voice)]
+                for i in range(min(array),max(array)+1):
+                    voices[i] = 0
+                voices[keys[values.index(max_voice)]] = 'Изгнан'
+                print(voices)
+
+    elif last == 0:
+        if len(array) == golosa:
+            if count == 1:
+                array.remove(keys[values.index(max_voice)])
+                print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
+                print(f'Эррей сейчас - {array}')
+                golosa = 0
+                logs = []
+                last = keys[values.index(max_voice)]
+                for i in range(min(array),max(array)+1):
+                    voices[i] = 0
+                voices[keys[values.index(max_voice)]] = 'Изгнан'
+                print(voices)
+
+@app.get('/rooms/{room_code}/last')
+async def return_last(room_code:str):
+    return last
+
+# Механики для добавления/удаления голосов
+@app.post('/rooms/{room_code}/voice_a')
+async def voice_for_player(room_code:str, data:AddVoice):
+    global golosa
+    print(f'Добавлен лог: {data.player1}:{data.player2}')
+
+    logs.append({data.player1:data.player2})
+    print(f'Логи сейчас: {logs}')
+
+    if data.player2 not in voices:
+        voices[data.player2] = 1
+    else:
+        voices[data.player2] += 1
+    print(f'У игрока {data.player2} {voices[data.player2]} голосов')
+    print(voices)
+
+    golosa += 1
+
+    print(f'Игроки проголосовавшие сейчас: {golosa}')
+    await izgnat()
+
+@app.post('/rooms/{room_code}/voice_d')
+async def del_voice_of_player(room_code:str, data:Player):
+    global golosa
+    global voices
+    log = {}
+
+    for index in logs:
+        if data.player in index:
+            log = index
+            print(f'Удален лог {log}')
+            logs.remove(index)
+
+    person = list(log.values())[0]
+    voices[person] -= 1
+
+    golosa -= 1
+
+    print(f'Игроков проголосовавших сейчас: {golosa}')
+
+    print(f'Логи сейчас: {logs}')
+
+@app.get('/rooms/{room_code}/voice_p')
+async def get_voices(room_code:str):
+    print(f'Отправлены голоса - {voices}')
+    return voices
+
+@app.get('/rooms/{room_code}/igroks')
+async def get_igroks(room_code:str):
+    return golosa
 
 # Механика удержания номера за игроком
 @app.post("/rooms/{room_code}/players/del")
