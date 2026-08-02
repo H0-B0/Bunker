@@ -61,6 +61,16 @@ class OpenChar(BaseModel):
     char_number:int
     text:str
 
+from typing import Any
+class ActionData(BaseModel):
+    player: str
+    players: Any
+    target_player: str | None = None
+    selected_trait: str | None = None
+    char_index: int | None = None
+    card_data: dict
+    text: str
+
 
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
@@ -145,160 +155,102 @@ async def get_players(room_code:str):
 
 # Механика условий
 
-@app.post('/rooms/{room_code}/uslovie/every')
-async def every_char(room_code:str, data:EveryChar):
-    # Если говорить коротко, то вся эта часть чисто для того, чтобы найти минимальное количество hidden у неизганных игроков
-    room_players = roomses[room_code]
-    hidden_counts = {}
-    schet = 1
-    for player in room_players:
-        for char in room_players[player]:
-            if schet in array:
-                if room_players[player][char] == 'hidden':
-                    if player not in hidden_counts:
-                        hidden_counts[player] = 1
-                    else:
-                        hidden_counts[player] += 1
-        schet += 1
-    # Тут мы порсто засовываем в переменную, чтобы было удобно использовать
-    min_hidden = min(hidden_counts.values())
-
-    # А тут, если эта характеристика открыта, то ничего не делаем, а если закрыта делаем ее открытой и ставим в локс, чтобы потом убрать чекбокс у игрока, чтобы он не скрыл ее у себя
-    for player in hidden_counts.keys():
-        if hidden_counts[player] > min_hidden:
-            if room_players[player][data.character] == 'hidden':
-                locks[player] = data.character
-                igrok = int(player.replace('igrok',''))
-                roomses[room_code][player][data.character] = data.players[igrok-1][data.char_number]
-
-    print(f'Лок обновлен: {locks}')
+@app.post('/rooms/{room_code}/execute_action')
+async def execute_action(room_code: str, data: ActionData):
+    print(f"Executing action: {data.card_data['action']} by {data.player} on {data.target_player}")
+    action = data.card_data["action"]
+    trait = data.card_data.get("trait") or data.selected_trait
+    
+    if action == "SWAP_TRAIT":
+        player1 = data.player
+        player2 = data.target_player
+        if roomses[room_code][player1][trait] == 'hidden' or roomses[room_code][player2][trait] == 'hidden':
+            print('Обмен невозможен - характеристика скрыта')
+            return
+        
+        temp = roomses[room_code][player1][trait]
+        roomses[room_code][player1][trait] = roomses[room_code][player2][trait]
+        roomses[room_code][player2][trait] = temp
+        locks[player1] = trait
+        locks[player2] = trait
+        
+    elif action == "CHANGE_AGE":
+        player1 = data.player
+        player2 = data.target_player
+        if roomses[room_code][player1]['Биология'] == 'hidden' or roomses[room_code][player2]['Биология'] == 'hidden':
+            return
+        age = roomses[room_code][player2]['Биология'].split()[1]
+        first_age = roomses[room_code][player1]['Биология'].split()
+        first_age[1] = age
+        roomses[room_code][player1]['Биология'] = ' '.join(first_age)
+        
+    elif action == "MAKE_PREGNANT":
+        player2 = data.target_player
+        if roomses[room_code][player2]['Биология'] == 'hidden': return
+        bio = roomses[room_code][player2]['Биология'].split()
+        if 'Женщина' in bio[0]:
+            bio[0] = f'{bio[0]} беременна,'
+            roomses[room_code][player2]['Биология'] = ' '.join(bio)
+            
+    elif action == "CHANGE_GENDER":
+        player = data.target_player
+        if roomses[room_code][player]['Биология'] == 'hidden': return
+        bio = roomses[room_code][player]['Биология']
+        if 'Мужчина' in bio:
+            if 'гей' in bio: roomses[room_code][player]['Биология'] = bio.replace('Мужчина-гей', 'Женщина-лесбиянка')
+            else: roomses[room_code][player]['Биология'] = bio.replace('Мужчина', 'Женщина')
+        else:
+            if 'беременна' in bio:
+                print('Трансформация невозможна, беременных мужиков не бывает')
+            else:
+                if 'лесбиянка' in bio: roomses[room_code][player]['Биология'] = bio.replace('Женщина-лесбиянка', 'Мужчина-гей')
+                else: roomses[room_code][player]['Биология'] = bio.replace('Женщина', 'Мужчина')
+        locks[player] = 'Биология'
+            
+    elif action == "BAN_VOTE":
+        locks[data.target_player] = 'Условие'
+        
+    elif action == "REVEAL_ANY":
+        # data.players это список списков
+        igrok_num = int(data.target_player.replace('igrok', ''))
+        char_val = data.players[igrok_num - 1][data.char_index]
+        roomses[room_code][data.target_player][trait] = char_val
+        locks[data.target_player] = trait
+        
+    elif action == "REVEAL_ALL":
+        room_players = roomses[room_code]
+        hidden_counts = {}
+        schet = 1
+        for p in room_players:
+            for char in room_players[p]:
+                if schet in array:
+                    if room_players[p][char] == 'hidden':
+                        hidden_counts[p] = hidden_counts.get(p, 0) + 1
+            schet += 1
+        min_hidden = min(hidden_counts.values()) if hidden_counts else 0
+        for p in hidden_counts:
+            if hidden_counts[p] > min_hidden:
+                if room_players[p][trait] == 'hidden':
+                    locks[p] = trait
+                    igrok = int(p.replace('igrok',''))
+                    roomses[room_code][p][trait] = data.players[igrok - 1][data.char_index]
+                    
     uslovies.append(data.text)
+    return {"status": "success"}
 
 @app.get('/rooms/{room_code}/uslovie/locks')
 async def get_locks(room_code:str):
     print(f'Отправлены локи: {locks}')
     return locks
 
-@app.post('/rooms/{room_code}/uslovie/char')
-async def deal_one_char(room_code: str, data: DealChar):
-    print(f'Приняты игроки {data.player1} и {data.player2}')
-
-    player_one_char = roomses[room_code][data.player1][data.char]
-    player_two_char = roomses[room_code][data.player2][data.char]
-
-    print(f'Характеристики игрока 1 - {player_one_char}')
-    print(f'Характеристики игрока 2 - {player_two_char}')
-
-    # Если у кого-то hidden — не меняем
-    if player_one_char == 'hidden' or player_two_char == 'hidden':
-        print('Одна из характеристик скрыта — обмен невозможен')
-        return
-
-    # Меняем местами
-    roomses[room_code][data.player1][data.char] = player_two_char
-    roomses[room_code][data.player2][data.char] = player_one_char
-
-    # Правильные выводы
-    print(f'Теперь у {data.player1} характеристика: {roomses[room_code][data.player1][data.char]}')
-    print(f'Теперь у {data.player2} характеристика: {roomses[room_code][data.player2][data.char]}')
-
-    print(f'''Полный список:
-{roomses[room_code]}''')
-
-    locks[data.player1] = data.char
-    locks[data.player2] = data.char
-    uslovies.append(data.text)
-
-@app.post('/rooms/{room_code}/uslovie/age')
-async def deal_age(room_code:str, data:OnlyTwoPlayers):
-    player1 = f'igrok{data.player1}'
-    player2 = f'igrok{data.player2}'
-    print(f'Приняты игроки {player1} и {player2}')
-    print(f'''Биология {player1} игрока - {roomses[room_code][player1]['Биология']}
-Биология {player2} игрока - {roomses[room_code][player2]['Биология']}''')
-    if roomses[room_code][player1]['Биология'] == 'hidden' or roomses[room_code][player2]['Биология'] == 'hidden': print('Обмен невозможен')
-    else:
-        age = roomses[room_code][player2]['Биология'].split()[1]
-        first_age = roomses[room_code][player1]['Биология'].split()
-        first_age[1] = age
-        new_biology = ' '.join(first_age)
-        roomses[room_code][player1]['Биология'] = new_biology
-        print(f'Новая биология {player1} игрока - {roomses[room_code][player1]['Биология']}')
-    uslovies.append(data.text)
-
-@app.post('/rooms/{room_code}/uslovie/child')
-async def get_child(room_code:str, data:OnlyTwoPlayers):
-    player1 = f'igrok{data.player1}'
-    player2 = f'igrok{data.player2}'
-    print(f'Приняты игроки {player1} и {player2}')
-    print(f'''Биология {player1} игрока - {roomses[room_code][player1]['Биология']}
-Биология {player2} игрока - {roomses[room_code][player2]['Биология']}''')
-    if roomses[room_code][player2]['Биология'] == 'hidden' or roomses[room_code][player1]['Биология'] == 'hidden':
-        print('Надо было открыть сначала')
-    else:
-        bio = roomses[room_code][player2]['Биология'].split()
-        if 'Женщина' in bio[0]:
-            print(f'{player2} подходит для оплодотворения')
-            gender = f'{bio[0]} беременна,'
-            bio[0] = gender
-            new_bio = ' '.join(bio)
-            roomses[room_code][player2]['Биология'] = new_bio
-        else:
-            print('Брат, это мужик')
-    uslovies.append(data.text)
+# Removed char, age, child endpoints
 
 @app.get('/rooms/{room_code}/uslovie/last')
 async def play_last_card(room_code:str):
     print(uslovies[-1])
     return uslovies[-1]
 
-@app.post('/rooms/{room_code}/uslovie/open')
-async def open_char(room_code:str, data:OpenChar):
-    print(f'Данные будут открыты у игрока {data.player}')
-    number = int(data.player.replace('igrok',''))
-    char = data.players[number-1][data.char_number]
-    print(f'Будет взята характеристика {data.character}')
-    print(f'Старая характеристика игрока - {roomses[room_code][data.player][data.character]}')
-    roomses[room_code][data.player][data.character] = char
-    print(f'Новая характеристика игрока - {roomses[room_code][data.player][data.character]}')
-    uslovies.append(data.text)
-    locks[data.player] = data.character
-
-@app.post('/rooms/{room_code}/uslovie/zapret')
-async def close_uslovie(room_code:str, data:Player):
-    igrok = f'igrok{data.player}'
-    print(f'Принят игрок {igrok}')
-    locks[igrok] = 'Условие'
-    print(f'У игрока {igrok} заблокировано условие')
-    uslovies.append("Запрети использовать карту условия")
-
-
-@app.post('/rooms/{room_code}/uslovie/gender')
-async def change_gender(room_code:str, data:Player):
-    player = f'igrok{data.player}'
-    if roomses[room_code][player]['Биология'] == 'hidden':
-        print('Биология скрыта. ГГ')
-        return
-    else:
-        bio = roomses[room_code][player]['Биология']
-        if 'Мужчина' in bio:
-            if 'гей' in bio:
-                roomses[room_code][player]['Биология'] = bio.replace('Мужчина-гей', 'Женщина-лесбиянка')
-            else:
-                roomses[room_code][player]['Биология'] = bio.replace('Мужчина', 'Женщина')
-
-            print('Трансформация успешна')
-        elif 'Женщина' in bio:
-            if 'беременна' in bio:
-                print('Трансформация невозможна, беременных мужиков не бывает')
-            else:
-                if 'лесбиянка' in bio:
-                    roomses[room_code][player]['Биология'] = bio.replace('Женщина-лесбиянка', 'Мужчина-гей')
-                else:
-                    roomses[room_code][player]['Биология'] = bio.replace('Женщина', 'Мужчина')
-                    print('Трансформация получилась')
-        locks[player] = 'Биология'
-    uslovies.append("Измени пол себе или другому игроку")
+# Removed open, zapret, gender endpoints
 
 
 # if __name__ == "__main__":

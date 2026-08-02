@@ -2,149 +2,44 @@ import tkinter as tk
 import os
 import sys
 import requests
-import math
 
-# Основная функция
+# Словарь действий - мост между старой БД и новой архитектурой
+ACTION_MAPPING = {
+    "Поменяйся профессией": {"action": "SWAP_TRAIT", "target": "PLAYER", "trait": "Профессия"},
+    "Поменяйся здоровьем": {"action": "SWAP_TRAIT", "target": "PLAYER", "trait": "Здоровье"},
+    "Поменяйся хобби": {"action": "SWAP_TRAIT", "target": "PLAYER", "trait": "Хобби"},
+    "Поменяйся фобией": {"action": "SWAP_TRAIT", "target": "PLAYER", "trait": "Фобия"},
+    "Поменяйся характером": {"action": "SWAP_TRAIT", "target": "PLAYER", "trait": "Характер"},
+    "Поменяйся фактами": {"action": "SWAP_TRAIT", "target": "PLAYER", "trait": "Факты"},
+    "Поменяйся багажом": {"action": "SWAP_TRAIT", "target": "PLAYER", "trait": "Багаж"},
+    "Поменяйся любой характеристикой": {"action": "SWAP_TRAIT", "target": "PLAYER_AND_TRAIT"},
+
+    "Твой возраст теперь равен возрасту любого выбранного игрока": {"action": "CHANGE_AGE", "target": "PLAYER"},
+    "Выбранный игрок становится беременным": {"action": "MAKE_PREGNANT", "target": "PLAYER"},
+    "Измени пол себе или другому игроку": {"action": "CHANGE_GENDER", "target": "PLAYER", "allow_self": True},
+
+    "Запрети использовать карту условия": {"action": "BAN_VOTE", "target": "PLAYER"},
+
+    "Выбери тип карты, который должны открыть все до конца раунда": {"action": "REVEAL_ALL", "target": "TRAIT"},
+    "Раскрой любую неоткрытую характеристику игрока": {"action": "REVEAL_ANY", "target": "PLAYER_AND_TRAIT"},
+    
+    "Сыграй последнюю карту условий": {"action": "PLAY_LAST", "target": "NONE"}
+}
+
+def get_payload(text):
+    if not text: return None
+    for key, payload in ACTION_MAPPING.items():
+        if key in text:
+            return payload
+    return None
+
 def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
-
-    def clear_and_show(p):
-        # Удаляем все виджеты из окна
-        for widget in okno.winfo_children():
-            widget.destroy()
-        # Показываем выбор характеристики
-        make_chars('one_per', p)
-
-    def deal_char(player1, player2, char):
-        if char == 'профессией': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Профессия', 'text':text})
-        elif char == 'здоровьем': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Здоровье', 'text':text})
-        elif char == 'хобби': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Хобби', 'text':text})
-        elif char == 'фобией': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Фобия', 'text':text})
-        elif char == 'характером': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Характер', 'text':text})
-        elif char == 'фактами': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Факты', 'text':text})
-        elif char == 'багажом': requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':player1, 'player2':player2, 'char':'Багаж', 'text':text})
-        okno.destroy()
-
-    def make_net(attr):
-        # Разбиваем игроков на строки по 4 (1-4, 5-8, 9-12)
-        mesto = [[],[],[]]
-
-        for i in range(1, len(players) + 1):
-            if i <= 4:
-                mesto[0].append(i)
-            elif i <= 8:
-                mesto[1].append(i)
-            else:
-                mesto[2].append(i)
-
-        # Убираем из списков самого игрока
-        if attr != 'Пол':
-            for i in mesto:
-                if player in i:
-                    i.remove(player)
-
-        # Настраиваем 9 колонок с одинаковым весом (для центрирования)
-        for i in range(9):
-            okno.grid_columnconfigure(i, weight=1)
-
-        title = tk.Label(okno, text="Выберите игрока", **HEADING_STYLE)
-        title.grid(column=0, row=0, columnspan=9, sticky='ew')
-
-        buttons = []
-
-        # Шаблоны для 7 колонок (колонки 1-7, 0 и 8 пустые)
-        # 'k' — место для кнопки, '' — пустое место
-        templates = {
-            1: ['', '', '', 'k', '', '', ''],
-            2: ['', '', 'k', '', 'k', '', ''],
-            3: ['', 'k', '', 'k', '', 'k', ''],
-            4: ['k', '', 'k', '', 'k', '', 'k']
-        }
-
-        row = 1
-        for group in mesto:
-            if not group:
-                continue
-
-            template = templates[len(group)]
-            col = 1
-
-            for t in template:
-                if t == 'k':
-                    # Берём следующего игрока из группы
-                    player_num = group.pop(0)
-
-                    # Создаём команду с фиксацией значений
-                    if attr == 'Поменяться':
-                        comanda = lambda p1=f'igrok{player}', p2=f'igrok{player_num}', char=text.split()[1]: deal_char(p1,p2,char)
-                    elif attr == 'Возраст':
-                        comanda = lambda p2=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/age', json={'player1':player, 'player2':p2, 'text':text}), okno.destroy())
-                    elif attr == 'Беременность':
-                        comanda = lambda p2=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/child', json={'player1':player, 'player2':p2, 'text':text}), okno.destroy())
-                    elif attr == 'Любая':
-                        comanda = lambda p=player_num: clear_and_show(p)
-                    elif attr == 'Запрет':
-                        comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/zapret', json={'player':p}), okno.destroy())
-                    elif attr == 'Пол':
-                        comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/gender', json={'player':p}), okno.destroy())
-                    btn = tk.Button(okno, text=player_num, **BUTTON_STYLE, command=comanda, width=3)
-                    btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
-                    buttons.append(btn)
-
-                col += 1
-
-            row += 1
-
-    def make_chars(attr, p=None):
-        title = tk.Label(okno,text="Выберите тип карты", **HEADING_STYLE)
-        title.grid(column=1, row=0,columnspan=2, sticky='ew')
-        if attr=='every_per': 
-            chars = [
-                ["🔧 Профессия",'Профессия',0],
-                ["🧬 Биология",'Биология',1],
-                ['🤧 Здоровье',"Здоровье",2],
-                ["🎯 Хобби","Хобби",3],
-                ["😨 Фобия","Фобия",4],
-                ["🧠 Характер","Характер",5],
-                ["📝 Факт","Факт",6],
-                ["🎒 Багаж","Багаж",7]
-            ]
-            row = 1
-            column=0
-            for label, char_name, char_index in chars:
-                btn = tk.Button(okno,text=label, **BUTTON_STYLE,
-                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/{code}/uslovie/every', json={'character':cn, 'players':players, 
-                'char_number':ci, 'text':text}),
-                okno.destroy()))
-                btn.grid(row=row, column=column, **PADDING)
-                column += 1
-                if column == 4:
-                    column=0
-                    row=2
-        
-        elif attr=='one_per':
-            chars = [
-                ["🔧 Профессия",'Профессия',0],
-                ["🧬 Биология",'Биология',1],
-                ['🤧 Здоровье',"Здоровье",2],
-                ["🎯 Хобби","Хобби",3],
-                ["😨 Фобия","Фобия",4],
-                ["🧠 Характер","Характер",5],
-                ["📝 Факт","Факт",6],
-                ["🎒 Багаж","Багаж",7]
-            ]
-            row = 1
-            column=0
-            for label, char_name, char_index in chars:
-                btn = tk.Button(okno,text=label, **BUTTON_STYLE,
-                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/{code}/uslovie/open', json={'player':f'igrok{p}','character':cn,  
-                'players':players, 'char_number':ci, 'text':text}),
-                okno.destroy()))
-                btn.grid(row=row, column=column, **PADDING)
-                column += 1
-                if column == 4:
-                    column=0
-                    row=2
-
+    payload = get_payload(text)
+    
+    # Если карточка не интерактивная или не найдена в словаре - игнорируем
+    if not payload:
+        print(f"Неинтерактивное условие (для голосования) или неизвестно: {text}")
+        return
 
     # Цвета и стили
     BG_COLOR = "#1A1A1A"
@@ -157,48 +52,111 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text):
     BUTTON_STYLE = {"font": ("Arial", 12), "bg": BG_COLOR, "fg": TEXT_COLOR, 'height':3}
     PADDING = {"pady": 5, 'padx':(10,0)}
 
-    # РАЗМЕТКА
     okno = tk.Toplevel()
     okno.configure(background=BG_COLOR)
     okno.geometry('535x450')
     okno.title("Окно условия")
 
-    # Взависимости от системы ставим иконку
-    if sys.platform.startswith('win'):
-        if icon_ico and os.path.exists(icon_ico):
-            okno.iconbitmap(icon_ico)
-    else:
-        if icon_png and os.path.exists(icon_png):
-            try:
-                img = tk.PhotoImage(file=icon_png)
-                okno.iconphoto(True, img)
-            except:
-                pass
+    if sys.platform.startswith('win') and icon_ico and os.path.exists(icon_ico):
+        okno.iconbitmap(icon_ico)
+    elif icon_png and os.path.exists(icon_png):
+        try:
+            img = tk.PhotoImage(file=icon_png)
+            okno.iconphoto(True, img)
+        except:
+            pass
 
+    # Универсальная функция отправки Payload на сервер
+    def execute_action(target_player=None, selected_trait=None, char_index=None):
+        data = {
+            "player": f"igrok{player}",
+            "players": players,
+            "target_player": f"igrok{target_player}" if target_player else None,
+            "selected_trait": selected_trait,
+            "char_index": char_index,
+            "card_data": payload,
+            "text": text
+        }
+        
+        if payload["action"] == "PLAY_LAST":
+            last_text = requests.get(f'http://{ip}/rooms/{code}/uslovie/last').json()
+            okno.destroy()
+            usl_okno(player, icon_png, icon_ico, players, code, ip, last_text)
+            return
 
-    if text=="Выбери тип карты, который должны открыть все до конца раунда":
-        make_chars('every_per')
-
-    elif len(text.split()) == 2 and 'Поменяйся' in text:
-        make_net('Поменяться')
-
-    elif 'возраст' in text:
-        make_net('Возраст')
-
-    elif 'беременным' in text:
-        make_net('Беременность')
-
-    elif 'последнюю' in text:
-        get_in = requests.get(f'http://{ip}/rooms/{code}/uslovie/last').json()
-        print(get_in)
+        requests.post(f'http://{ip}/rooms/{code}/execute_action', json=data)
         okno.destroy()
-        usl_okno(player, icon_png, icon_ico, players, code, ip, get_in)
 
-    elif 'любую' in text:
-        make_net('Любая')
-    
-    elif 'Запрети' in text:
-        make_net('Запрет')
+    def clear_and_show_traits(target_p=None):
+        for widget in okno.winfo_children():
+            widget.destroy()
+        make_chars(target_p)
 
-    elif 'пол' in text:
-        make_net('Пол')
+    def make_net():
+        mesto = [[],[],[]]
+        for i in range(1, len(players) + 1):
+            if i <= 4: mesto[0].append(i)
+            elif i <= 8: mesto[1].append(i)
+            else: mesto[2].append(i)
+
+        if not payload.get("allow_self", False):
+            for group in mesto:
+                if player in group: group.remove(player)
+
+        for i in range(9): okno.grid_columnconfigure(i, weight=1)
+        title = tk.Label(okno, text="Выберите игрока", **HEADING_STYLE)
+        title.grid(column=0, row=0, columnspan=9, sticky='ew')
+
+        templates = {
+            1: ['', '', '', 'k', '', '', ''],
+            2: ['', '', 'k', '', 'k', '', ''],
+            3: ['', 'k', '', 'k', '', 'k', ''],
+            4: ['k', '', 'k', '', 'k', '', 'k']
+        }
+
+        row = 1
+        for group in mesto:
+            if not group: continue
+            template = templates[len(group)]
+            col = 1
+            for t in template:
+                if t == 'k':
+                    player_num = group.pop(0)
+                    
+                    if payload["target"] == "PLAYER_AND_TRAIT":
+                        comanda = lambda p=player_num: clear_and_show_traits(p)
+                    else:
+                        comanda = lambda p=player_num: execute_action(target_player=p)
+                        
+                    btn = tk.Button(okno, text=player_num, **BUTTON_STYLE, command=comanda, width=3)
+                    btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
+                col += 1
+            row += 1
+
+    def make_chars(target_p=None):
+        title = tk.Label(okno,text="Выберите тип карты", **HEADING_STYLE)
+        title.grid(column=1, row=0,columnspan=2, sticky='ew')
+        chars = [
+            ["🔧 Профессия",'Профессия',0], ["🧬 Биология",'Биология',1],
+            ['🤧 Здоровье',"Здоровье",2], ["🎯 Хобби","Хобби",3],
+            ["😨 Фобия","Фобия",4], ["🧠 Характер","Характер",5],
+            ["📝 Факт","Факт",6], ["🎒 Багаж","Багаж",7]
+        ]
+        row = 1
+        column = 0
+        for label, char_name, char_index in chars:
+            btn = tk.Button(okno,text=label, **BUTTON_STYLE,
+                command=lambda cn=char_name, ci=char_index: execute_action(target_player=target_p, selected_trait=cn, char_index=ci))
+            btn.grid(row=row, column=column, **PADDING)
+            column += 1
+            if column == 4:
+                column=0
+                row=2
+
+    # Рендер в зависимости от Target
+    if payload["action"] == "PLAY_LAST":
+        execute_action()
+    elif payload["target"] in ["PLAYER", "PLAYER_AND_TRAIT"]:
+        make_net()
+    elif payload["target"] == "TRAIT":
+        make_chars()
