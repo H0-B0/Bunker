@@ -211,8 +211,9 @@ async def execute_action(room_code: str, data: ActionData):
         locks[data.target_player] = 'Условие'
         
     elif action == "REVEAL_ANY":
-        # data.players здесь это словарь array
-        char_val = data.players[str(int(data.target_player.replace('igrok', '')))][data.char_index]
+        # data.players это список списков
+        igrok_num = int(data.target_player.replace('igrok', ''))
+        char_val = data.players[igrok_num - 1][data.char_index]
         roomses[room_code][data.target_player][trait] = char_val
         locks[data.target_player] = trait
         
@@ -226,13 +227,13 @@ async def execute_action(room_code: str, data: ActionData):
                     if room_players[p][char] == 'hidden':
                         hidden_counts[p] = hidden_counts.get(p, 0) + 1
             schet += 1
-        min_hidden = min(hidden_counts.values())
+        min_hidden = min(hidden_counts.values()) if hidden_counts else 0
         for p in hidden_counts:
             if hidden_counts[p] > min_hidden:
                 if room_players[p][trait] == 'hidden':
                     locks[p] = trait
                     igrok = int(p.replace('igrok',''))
-                    roomses[room_code][p][trait] = data.players[str(igrok)][data.char_index]
+                    roomses[room_code][p][trait] = data.players[igrok - 1][data.char_index]
                     
     uslovies.append(data.text)
     return {"status": "success"}
