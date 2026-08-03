@@ -157,22 +157,22 @@ async def izgnat():
         if len(array)+1 == golosa:
             if count == 1:
                 array.remove(keys[values.index(max_voice)])
-                print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
-                print(f'Эррей сейчас - {array}')
+                # print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
+                # print(f'Эррей сейчас - {array}')
                 golosa = 0
                 logs = []
                 last = keys[values.index(max_voice)]
                 for i in range(min(array),max(array)+1):
                     voices[i] = 0
                 voices[keys[values.index(max_voice)]] = 'Изгнан'
-                print(voices)
+                # print(voices)
 
     elif last == 0:
         if len(array) == golosa:
             if count == 1:
                 array.remove(keys[values.index(max_voice)])
-                print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
-                print(f'Эррей сейчас - {array}')
+                # print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
+                # print(f'Эррей сейчас - {array}')
                 golosa = 0
                 logs = []
                 last = keys[values.index(max_voice)]
@@ -215,7 +215,7 @@ async def del_voice_of_player(room_code:str, data:Player):
     for index in logs:
         if data.player in index:
             log = index
-            print(f'Удален лог {log}')
+            # print(f'Удален лог {log}')
             logs.remove(index)
 
     person = list(log.values())[0]
@@ -223,9 +223,9 @@ async def del_voice_of_player(room_code:str, data:Player):
 
     golosa -= 1
 
-    print(f'Игроков проголосовавших сейчас: {golosa}')
+    # print(f'Игроков проголосовавших сейчас: {golosa}')
 
-    print(f'Логи сейчас: {logs}')
+    # print(f'Логи сейчас: {logs}')
 
 @app.get('/rooms/{room_code}/voice_p')
 async def get_voices(room_code:str):
@@ -295,8 +295,8 @@ async def deal_one_char(room_code: str, data: DealChar):
     player_one_char = roomses[room_code][data.player1][data.char]
     player_two_char = roomses[room_code][data.player2][data.char]
 
-    print(f'Характеристики игрока 1 - {player_one_char}')
-    print(f'Характеристики игрока 2 - {player_two_char}')
+    # print(f'Характеристики игрока 1 - {player_one_char}')
+    # print(f'Характеристики игрока 2 - {player_two_char}')
 
     # Если у кого-то hidden — не меняем
     if player_one_char == 'hidden' or player_two_char == 'hidden':

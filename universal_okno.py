@@ -252,7 +252,6 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
             window.destroy()
 
         last = 0
-        for_schet = 0
 
         golosa = 0
 
@@ -289,13 +288,6 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 self.fiact = tk.IntVar()
                 self.bag = tk.IntVar()
                 self.usl = tk.IntVar()
-
-                # Сила голоса игрока
-                self.voice = 1
-                # Номер игрока в которого вкинут голос
-                self.player = 0
-                # Массив для заполнения окна голосования игроками
-                self.igroks = []
 
             def del_check(self,char):
                 if char == {}:
@@ -664,9 +656,9 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
         window.update_idletasks()
         configure_scrollregion()
 
-        # Обновление характеристик других игроков, если они их открыли
         def sws():
             nonlocal last
+            # Обновление характеристик других игроков, если они их открыли
             get_in = requests.get(f"http://{server_ip}/rooms/{code}")
             play = get_in.json()
             if play[f'igrok{player}']['Профессия'] != 'hidden': users[player].massiv[0] = play[f'igrok{player}']['Профессия']
@@ -690,10 +682,12 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 users[i]
             users[player].characters()
 
+            #Если была использована карта условия на открытие или изменение характеристики, то с помощью локс у характеристики пропадет чекбокс в функции del_check
             get_locks = requests.get(f'http://{server_ip}/rooms/{code}/uslovie/locks').json()
             for i in range(1,max_p+1):
                 users[i].del_check(get_locks[f'igrok{i}'])
 
+            # В ласт записывается последний изгнанный игрок, чтобы он мог голосовать
             last = requests.get(f'http://{server_ip}/rooms/{code}/last').json()
 
             window.after(1000, sws)
@@ -706,8 +700,10 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
             nonlocal golosa
             nonlocal voices
 
+            # Голоса - это число проголосовавших, если оно равно array или если кто-то изгнан, то по нему будет происходить ориентировка для окончания раунда
             golosa = requests.get(f'http://{server_ip}/rooms/{code}/igroks').json()
 
+            # Сверка старого количества игроков с новым, и удаление возможности голосования у того, кто был изгнан предыдущим, если кого-то изгнали до этого
             get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok").json()
             if len(get_in)<len(array):
                 print(get_in)
@@ -722,12 +718,14 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
 
             zamena()
 
+            # Получаем голосование с сервера и так как ключи идут строками, то делаем их числами для большего удосбства
             voices = requests.get(f'http://{server_ip}/rooms/{code}/voice_p').json()
             voice_keys = list(map(int,voices.keys()))
             voice_values = list(voices.values())
 
             new_voices = {}
 
+            # Заполняем новое голсование и обновляем таблицу голосвания
             for key, value in zip(voice_keys, voice_values):
                 new_voices[key] = value
             voices = new_voices
@@ -736,6 +734,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 for i in voice_keys:
                     users[player].igroks[i-1].config(text=voices[i])
 
+                # Если хотя бы кто-то за кого-то проголосовал, то открывется окно голосования
                 if any(s in [1,2,3,4,5,6,7,8,9] for s in voice_values):
                     users[player].vote_frame.grid(row=6, column=0, rowspan=11, sticky="new", pady=10)
                     if last == 0:
@@ -745,6 +744,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 else:
                     users[player].vote_frame.grid_forget()
 
+                # Если 0, то пропускаем, а если пустая строка, то значит игрок изгнан
                 for voice in range(len(voice_values)):
                     if voice_values[voice] == 0:
                         continue
