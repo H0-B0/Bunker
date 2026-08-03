@@ -289,6 +289,9 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 self.bag = tk.IntVar()
                 self.usl = tk.IntVar()
 
+                # Массив для заполнения окна голосования игроками
+                self.igroks = []
+
             def del_check(self,char):
                 if char == {}:
                     pass
