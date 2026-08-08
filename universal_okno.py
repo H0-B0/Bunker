@@ -11,6 +11,10 @@ from tkinter.messagebox import showerror
 import requests
 import math
 from functools import partial
+import asyncio
+import websockets
+import threading
+import json
 
 # Нааходим БД и картинки
 def get_resource_path(relative_path):
@@ -236,6 +240,119 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 configure_scrollregion()
 
         window.bind("<Configure>", on_window_resize)
+
+        async def listener():
+            nonlocal player
+            nonlocal array
+            nonlocal last
+            nonlocal locks
+            nonlocal golosa
+            nonlocal voices
+
+            async with websockets.connect(f'ws://{server_ip}/ws/{code}') as ws:
+                while True:
+                    raw = await ws.recv()
+
+                    try:
+                        text = json.loads(raw)
+                    except json.JSONDecodeError:
+                        if raw == 'ping':
+                            await ws.send('pong')
+                            print('pong')
+                        else:
+                            print(raw)
+                        continue
+                            
+                    print(text)
+
+                    for msg in text:
+                        print(f'Сейчас {msg}')
+                        if msg == 'voices':
+                            golosa = requests.get(f'http://{server_ip}/rooms/{code}/igroks').json()
+
+                            voices = requests.get(f'http://{server_ip}/rooms/{code}/voice_p').json()
+                            voice_keys = list(map(int,voices.keys()))
+                            voice_values = list(voices.values())
+                
+                            new_voices = {}
+                
+                            # Заполняем новое голсование и обновляем таблицу голосвания
+                            for key, value in zip(voice_keys, voice_values):
+                                new_voices[key] = value
+                            voices = new_voices
+                
+                            for user in users:
+                                for i in voice_keys:
+                                    users[user].igroks[i-1].config(text=voices[i])
+                
+                                # Если хотя бы кто-то за кого-то проголосовал, то открывется окно голосования
+                                if any(s in [1,2,3,4,5,6,7,8,9] for s in voice_values):
+                                    users[user].vote_frame.grid(row=6, column=0, rowspan=11, sticky="new", pady=10)
+                                    if last == 0:
+                                        users[user].kolVo_golosov.config(text=f'{golosa} из {len(array)}')
+                                    elif last > 1:
+                                        users[user].kolVo_golosov.config(text=f'{golosa} из {len(array)+1}')
+                                else:
+                                    users[user].vote_frame.grid_forget()
+                
+                                # Если 0, то пропускаем, а если пустая строка, то значит игрок изгнан
+                                for voice in range(len(voice_values)):
+                                    if voice_values[voice] == 0:
+                                        continue
+                                    elif voice_values[voice] == '':
+                                        users[user].igroks[voice].config(text='Изгнан')
+
+                        elif msg == 'main':
+                            # Обновление характеристик других игроков, если они их открыли
+                            play = requests.get(f"http://{server_ip}/rooms/{code}").json()
+                            print(play)
+                            if play[f'igrok{player}']['Профессия'] != 'hidden': users[player].massiv[0] = play[f'igrok{player}']['Профессия']
+                            if play[f'igrok{player}']['Биология'] != 'hidden': users[player].massiv[1] = play[f'igrok{player}']['Биология']
+                            if play[f'igrok{player}']['Здоровье'] != 'hidden': users[player].massiv[2] = play[f'igrok{player}']['Здоровье']
+                            if play[f'igrok{player}']['Хобби'] != 'hidden': users[player].massiv[3] = play[f'igrok{player}']['Хобби']
+                            if play[f'igrok{player}']['Фобия'] != 'hidden': users[player].massiv[6] = play[f'igrok{player}']['Фобия']
+                            if play[f'igrok{player}']['Характер'] != 'hidden': users[player].massiv[4] = play[f'igrok{player}']['Характер']
+                            if play[f'igrok{player}']['Факты'] != 'hidden': users[player].massiv[5] = play[f'igrok{player}']['Факты']
+                            if play[f'igrok{player}']['Багаж'] != 'hidden': users[player].massiv[7] = play[f'igrok{player}']['Багаж']
+                            for i in range(1,max_p+1):
+                                users[i].profession.config(text=play[f'igrok{i}']['Профессия'])
+                                users[i].biology.config(text=play[f'igrok{i}']['Биология'])
+                                users[i].health.config(text=play[f'igrok{i}']['Здоровье'])
+                                users[i].hobby.config(text=play[f'igrok{i}']['Хобби'])
+                                users[i].fobya.config(text=play[f'igrok{i}']['Фобия'])
+                                users[i].chara.config(text=play[f'igrok{i}']['Характер'])
+                                users[i].fact.config(text=play[f'igrok{i}']['Факты'])
+                                users[i].bagaje.config(text=play[f'igrok{i}']['Багаж'])
+                                users[i].uslovie.config(text=play[f'igrok{i}']['Условие'])
+                                users[i]
+                            users[player].characters()
+
+                        elif msg == 'array':
+                            # Сверка старого количества игроков с новым, и удаление возможности голосования у того, кто был изгнан предыдущим, если кого-то изгнали до этого
+                            get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok").json()
+                            if len(get_in)<len(array):
+                                print(get_in)
+                                for i in range(1,max_p+1):
+                                    users[i].izgnanie.config(text='ПРОГОЛОСОВАТЬ',fg=RED_ACCENT)
+                                    if i not in get_in and i != last and last > 0:
+                                        users[i]._vikid()
+                                        users[i].real_izgoy()
+                                    elif i not in get_in:
+                                        users[i]._vikid()
+                            array = get_in
+                
+                            zamena()
+
+                        elif msg == 'locks':
+                            #Если была использована карта условия на открытие или изменение характеристики, то с помощью локс у характеристики пропадет чекбокс в функции del_check
+                            get_locks = requests.get(f'http://{server_ip}/rooms/{code}/uslovie/locks').json()
+                            for i in range(1,max_p+1):
+                                users[i].del_check(get_locks[f'igrok{i}'])
+
+                        elif msg == 'last':
+                            # В ласт записывается последний изгнанный игрок, чтобы он мог голосовать
+                            last = requests.get(f'http://{server_ip}/rooms/{code}/last').json()
+                
 
         # Функция меняющая количество игроков
         def zamena():
@@ -659,107 +776,17 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
         window.update_idletasks()
         configure_scrollregion()
 
-        def sws():
-            nonlocal last
-            # Обновление характеристик других игроков, если они их открыли
-            get_in = requests.get(f"http://{server_ip}/rooms/{code}")
-            play = get_in.json()
-            if play[f'igrok{player}']['Профессия'] != 'hidden': users[player].massiv[0] = play[f'igrok{player}']['Профессия']
-            if play[f'igrok{player}']['Биология'] != 'hidden': users[player].massiv[1] = play[f'igrok{player}']['Биология']
-            if play[f'igrok{player}']['Здоровье'] != 'hidden': users[player].massiv[2] = play[f'igrok{player}']['Здоровье']
-            if play[f'igrok{player}']['Хобби'] != 'hidden': users[player].massiv[3] = play[f'igrok{player}']['Хобби']
-            if play[f'igrok{player}']['Фобия'] != 'hidden': users[player].massiv[6] = play[f'igrok{player}']['Фобия']
-            if play[f'igrok{player}']['Характер'] != 'hidden': users[player].massiv[4] = play[f'igrok{player}']['Характер']
-            if play[f'igrok{player}']['Факты'] != 'hidden': users[player].massiv[5] = play[f'igrok{player}']['Факты']
-            if play[f'igrok{player}']['Багаж'] != 'hidden': users[player].massiv[7] = play[f'igrok{player}']['Багаж']
-            for i in range(1,max_p+1):
-                users[i].profession.config(text=play[f'igrok{i}']['Профессия'])
-                users[i].biology.config(text=play[f'igrok{i}']['Биология'])
-                users[i].health.config(text=play[f'igrok{i}']['Здоровье'])
-                users[i].hobby.config(text=play[f'igrok{i}']['Хобби'])
-                users[i].fobya.config(text=play[f'igrok{i}']['Фобия'])
-                users[i].chara.config(text=play[f'igrok{i}']['Характер'])
-                users[i].fact.config(text=play[f'igrok{i}']['Факты'])
-                users[i].bagaje.config(text=play[f'igrok{i}']['Багаж'])
-                users[i].uslovie.config(text=play[f'igrok{i}']['Условие'])
-                users[i]
-            users[player].characters()
-
-            #Если была использована карта условия на открытие или изменение характеристики, то с помощью локс у характеристики пропадет чекбокс в функции del_check
-            get_locks = requests.get(f'http://{server_ip}/rooms/{code}/uslovie/locks').json()
-            for i in range(1,max_p+1):
-                users[i].del_check(get_locks[f'igrok{i}'])
-
-            # В ласт записывается последний изгнанный игрок, чтобы он мог голосовать
-            last = requests.get(f'http://{server_ip}/rooms/{code}/last').json()
-
-            window.after(1000, sws)
-
-        window.after(1000, sws)
-
-        # Обновляем количество изгнанных игроков
-        def pau():
-            nonlocal array
-            nonlocal golosa
-            nonlocal voices
-
-            # Голоса - это число проголосовавших, если оно равно array или если кто-то изгнан, то по нему будет происходить ориентировка для окончания раунда
-            golosa = requests.get(f'http://{server_ip}/rooms/{code}/igroks').json()
-
-            # Сверка старого количества игроков с новым, и удаление возможности голосования у того, кто был изгнан предыдущим, если кого-то изгнали до этого
-            get_in = requests.get(f"http://{server_ip}/rooms/{code}/spisok").json()
-            if len(get_in)<len(array):
-                print(get_in)
-                for i in range(1,max_p+1):
-                    users[i].izgnanie.config(text='ПРОГОЛОСОВАТЬ',fg=RED_ACCENT)
-                    if i not in get_in and i != last and last > 0:
-                        users[i]._vikid()
-                        users[i].real_izgoy()
-                    elif i not in get_in:
-                        users[i]._vikid()
-            array = get_in
-
-            zamena()
-
-            # Получаем голосование с сервера и так как ключи идут строками, то делаем их числами для большего удосбства
-            voices = requests.get(f'http://{server_ip}/rooms/{code}/voice_p').json()
-            voice_keys = list(map(int,voices.keys()))
-            voice_values = list(voices.values())
-
-            new_voices = {}
-
-            # Заполняем новое голсование и обновляем таблицу голосвания
-            for key, value in zip(voice_keys, voice_values):
-                new_voices[key] = value
-            voices = new_voices
-
-            for player in users:
-                for i in voice_keys:
-                    users[player].igroks[i-1].config(text=voices[i])
-
-                # Если хотя бы кто-то за кого-то проголосовал, то открывется окно голосования
-                if any(s in [1,2,3,4,5,6,7,8,9] for s in voice_values):
-                    users[player].vote_frame.grid(row=6, column=0, rowspan=11, sticky="new", pady=10)
-                    if last == 0:
-                        users[player].kolVo_golosov.config(text=f'{golosa} из {len(array)}')
-                    elif last > 1:
-                        users[player].kolVo_golosov.config(text=f'{golosa} из {len(array)+1}')
-                else:
-                    users[player].vote_frame.grid_forget()
-
-                # Если 0, то пропускаем, а если пустая строка, то значит игрок изгнан
-                for voice in range(len(voice_values)):
-                    if voice_values[voice] == 0:
-                        continue
-                    elif voice_values[voice] == '':
-                        users[player].igroks[voice].config(text='Изгнан')
-
-            window.after(1000, pau)
-        
-        window.after(1000, pau)
-
         # Обработка нажатия на крестик(Закрытие)
         window.protocol("WM_DELETE_WINDOW", on_closing)
+
+# Почему-то без этого, слушатель не работает
+###############################################################
+        def run_ws():
+            asyncio.run(listener())
+
+        ws_tread = threading.Thread(target=run_ws, daemon=True)
+        ws_tread.start()
+###############################################################
 
         window.mainloop()
 

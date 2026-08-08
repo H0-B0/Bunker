@@ -81,21 +81,21 @@ def sozdat(icon_png, icon_ico, db_path=None):
 
         # АВТОМАТИЧЕСКИЙ ЗАПУСК СЕРВЕРА
         # Если хочешь сам запускать сервер, комментируй отсюда
-        # if result != 0:
-        #     try:
-        #         import uvicorn
-        #         from server import app
+        if result != 0:
+            try:
+                import uvicorn
+                from server import app
 
-        #         def run_server():
-        #             uvicorn.run(app, host=host, port=int(port), log_level="critical", access_log=False, log_config=None)
+                def run_server():
+                    uvicorn.run(app, host=host, port=int(port), log_level="critical", access_log=False, log_config=None)
 
-        #         thread = threading.Thread(target=run_server, daemon=True)
-        #         thread.start()
-        #         time.sleep(1)
-        #     except Exception as e:
-        #         with open("server_start_crash.log", "w") as f:
-        #             traceback.print_exc(file=f)
-        #         raise
+                thread = threading.Thread(target=run_server, daemon=True)
+                thread.start()
+                time.sleep(1)
+            except Exception as e:
+                with open("server_start_crash.log", "w") as f:
+                    traceback.print_exc(file=f)
+                raise
         # До сюда
 
         okno.destroy()

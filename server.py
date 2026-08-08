@@ -3,10 +3,12 @@ import os
 # Добавляем текущую папку в путь поиска модулей – важно для PyInstaller
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import asyncio
+import json
 
 app = FastAPI()
 
@@ -36,6 +38,9 @@ logs = []
 
 #Переменная последнего изгнанного игрока
 last = 0
+
+# Сокеты игроков по кодам комнат
+webs = {}
 
 class Locks(BaseModel):
     locks:dict
@@ -82,6 +87,48 @@ class AddVoice(BaseModel):
     player1:int
     player2:int
 
+# Функция принятия сокета игроков
+@app.websocket("/ws/{room_code}")
+async def get_socket(websocket:WebSocket, room_code:str):
+    global webs
+    await websocket.accept()
+    if room_code not in webs:
+        webs[room_code] = []
+    webs[room_code].append(websocket)
+    try:
+        while True:
+            try:
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30)
+                if data == 'pong':
+                    continue
+                print(data)
+            except asyncio.TimeoutError:
+                print(f"Отправлен ping в комнату {room_code}")
+                await websocket.send_text("ping")
+                try:
+                    pong = await asyncio.wait_for(websocket.receive_text(), timeout=5)
+                    if pong == "pong":
+                        print("Получен pong")
+                        continue
+                except asyncio.TimeoutError:
+                    print("Клиент не ответил на ping")
+                    break
+                print(f"Отправлен ping в комнату {room_code}")
+    except WebSocketDisconnect:
+        webs[room_code].remove(websocket)
+
+# Функция отправки писем счастья игрокам
+async def newsletter(room_code:str, msg:list):
+    if room_code not in webs:
+        return
+    else:
+        for ws in webs[room_code]:
+            try:
+                # Без await не работает
+                await ws.send_text(json.dumps(msg))
+            except:
+                webs[room_code].remove(ws)
+
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
 async def create_room(room_code: str, data: RoomData):
@@ -114,6 +161,7 @@ async def update_room(room_code: str, data: CardUpdate):
     if data.player not in roomses[room_code]:
         return {'status': 404, 'message': 'Игрок не найден'}
     roomses[room_code][data.player][data.card] = data.value
+    await newsletter(room_code, ['main'])
     return {'status': 200, 'message': 'OK'}
 
 @app.get("/rooms/{room_code}")
@@ -139,7 +187,7 @@ async def get_array():
     return array
 
 
-async def izgnat():
+async def izgnat(room_code:str):
     global last
     global logs
     global golosa
@@ -157,29 +205,37 @@ async def izgnat():
         if len(array)+1 == golosa:
             if count == 1:
                 array.remove(keys[values.index(max_voice)])
-                # print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
-                # print(f'Эррей сейчас - {array}')
                 golosa = 0
                 logs = []
                 last = keys[values.index(max_voice)]
                 for i in range(min(array),max(array)+1):
                     voices[i] = 0
                 voices[keys[values.index(max_voice)]] = 'Изгнан'
-                # print(voices)
+                print(f'Произошло изгание игрока {keys[values.index(max_voice)]}')
+                await newsletter(room_code, ['voices', 'last', 'array'])
+            else:
+                golosa = 0
+                for i in range(min(array),max(array)+1):
+                    voices[i] = 0
+                logs = []
 
     elif last == 0:
         if len(array) == golosa:
             if count == 1:
                 array.remove(keys[values.index(max_voice)])
-                # print(f'Из эррея удален игрок {keys[values.index(max_voice)]}')
-                # print(f'Эррей сейчас - {array}')
                 golosa = 0
                 logs = []
                 last = keys[values.index(max_voice)]
                 for i in range(min(array),max(array)+1):
                     voices[i] = 0
                 voices[keys[values.index(max_voice)]] = 'Изгнан'
-                print(voices)
+                print(f'Произошло изгание игрока {keys[values.index(max_voice)]}')
+                await newsletter(room_code, ['voices', 'last', 'array'])
+            else:
+                golosa = 0
+                for i in range(min(array),max(array)+1):
+                    voices[i] = 0
+                logs = []
 
 @app.get('/rooms/{room_code}/last')
 async def return_last(room_code:str):
@@ -204,7 +260,9 @@ async def voice_for_player(room_code:str, data:AddVoice):
     golosa += 1
 
     print(f'Игроки проголосовавшие сейчас: {golosa}')
-    await izgnat()
+    await izgnat(room_code)
+
+    await newsletter(room_code, ['voices'])
 
 @app.post('/rooms/{room_code}/voice_d')
 async def del_voice_of_player(room_code:str, data:Player):
@@ -215,17 +273,13 @@ async def del_voice_of_player(room_code:str, data:Player):
     for index in logs:
         if data.player in index:
             log = index
-            # print(f'Удален лог {log}')
             logs.remove(index)
 
     person = list(log.values())[0]
     voices[person] -= 1
 
     golosa -= 1
-
-    # print(f'Игроков проголосовавших сейчас: {golosa}')
-
-    # print(f'Логи сейчас: {logs}')
+    await newsletter(room_code, ['voices'])
 
 @app.get('/rooms/{room_code}/voice_p')
 async def get_voices(room_code:str):
@@ -239,8 +293,12 @@ async def get_igroks(room_code:str):
 # Механика удержания номера за игроком
 @app.post("/rooms/{room_code}/players/del")
 async def del_player(room_code:str, data:Player):
-    players.remove(data.player)
-    print(f'Удален игрок {data.player}')
+    if data.player in players:
+        players.remove(data.player)
+        print(f'Удален игрок {data.player}')
+    else:
+        print(f'Игрок {data.player} уже удален')
+        print(players)
 
 @app.post("/rooms/{room_code}/players/accept")
 async def accept_player(room_code:str, data:Player):
@@ -282,6 +340,7 @@ async def every_char(room_code:str, data:EveryChar):
 
     print(f'Лок обновлен: {locks}')
     uslovies.append(data.text)
+    await newsletter(room_code, ['main', 'locks'])
 
 @app.get('/rooms/{room_code}/uslovie/locks')
 async def get_locks(room_code:str):
@@ -317,6 +376,7 @@ async def deal_one_char(room_code: str, data: DealChar):
     locks[data.player1] = data.char
     locks[data.player2] = data.char
     uslovies.append(data.text)
+    await newsletter(room_code, ['main', 'locks'])
 
 @app.post('/rooms/{room_code}/uslovie/age')
 async def deal_age(room_code:str, data:OnlyTwoPlayers):
@@ -334,6 +394,7 @@ async def deal_age(room_code:str, data:OnlyTwoPlayers):
         roomses[room_code][player1]['Биология'] = new_biology
         print(f'Новая биология {player1} игрока - {roomses[room_code][player1]['Биология']}')
     uslovies.append(data.text)
+    await newsletter(room_code, ['main', 'locks'])
 
 @app.post('/rooms/{room_code}/uslovie/child')
 async def get_child(room_code:str, data:OnlyTwoPlayers):
@@ -355,6 +416,7 @@ async def get_child(room_code:str, data:OnlyTwoPlayers):
         else:
             print('Брат, это мужик')
     uslovies.append(data.text)
+    await newsletter(room_code, ['main', 'locks'])
 
 @app.get('/rooms/{room_code}/uslovie/last')
 async def play_last_card(room_code:str):
@@ -372,6 +434,7 @@ async def open_char(room_code:str, data:OpenChar):
     print(f'Новая характеристика игрока - {roomses[room_code][data.player][data.character]}')
     uslovies.append(data.text)
     locks[data.player] = data.character
+    await newsletter(room_code, ['main', 'locks'])
 
 @app.post('/rooms/{room_code}/uslovie/zapret')
 async def close_uslovie(room_code:str, data:Player):
@@ -380,7 +443,7 @@ async def close_uslovie(room_code:str, data:Player):
     locks[igrok] = 'Условие'
     print(f'У игрока {igrok} заблокировано условие')
     uslovies.append("Запрети использовать карту условия")
-
+    await newsletter(room_code, ['main', 'locks'])
 
 @app.post('/rooms/{room_code}/uslovie/gender')
 async def change_gender(room_code:str, data:Player):
@@ -408,7 +471,8 @@ async def change_gender(room_code:str, data:Player):
                     print('Трансформация получилась')
         locks[player] = 'Биология'
     uslovies.append("Измени пол себе или другому игроку")
+    await newsletter(room_code, ['main', 'locks'])
 
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=8000)

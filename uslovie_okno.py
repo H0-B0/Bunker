@@ -89,6 +89,8 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text, array):
                         comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/uslovie/gender', json={'player':p}), okno.destroy())
                     elif attr == 'Убрать':
                         comanda = lambda p=player_num: (requests.post(f'http://{ip}/rooms/{code}/voice_a', json={'player1':player,'player2':p}), print(player, p), okno.destroy())
+                    elif attr == 'Поменяться любой':
+                        comanda = lambda p=player_num: (make_chars('for_deal', player, p))
                     btn = tk.Button(okno, text=player_num, **BUTTON_STYLE, command=comanda, width=3)
                     btn.grid(row=row, column=col, padx=5, pady=5, sticky='ew')
                     buttons.append(btn)
@@ -97,7 +99,9 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text, array):
 
             row += 1
 
-    def make_chars(attr, p=None):
+    def make_chars(attr, p1=None, p2=None):
+        for widget in okno.winfo_children():
+            widget.destroy()
         title = tk.Label(okno,text="Выберите тип карты", **HEADING_STYLE)
         title.grid(column=1, row=0,columnspan=2, sticky='ew')
         if attr=='every_per': 
@@ -139,8 +143,31 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text, array):
             column=0
             for label, char_name, char_index in chars:
                 btn = tk.Button(okno,text=label, **BUTTON_STYLE,
-                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/{code}/uslovie/open', json={'player':f'igrok{p}','character':cn,  
+                command=lambda cn=char_name, ci=char_index:(requests.post(f'http://{ip}/rooms/{code}/uslovie/open', json={'player':f'igrok{p1}','character':cn,  
                 'players':players, 'char_number':ci, 'text':text}),
+                okno.destroy()))
+                btn.grid(row=row, column=column, **PADDING)
+                column += 1
+                if column == 4:
+                    column=0
+                    row=2
+
+        elif attr == 'for_deal':
+            chars = [
+                ["🔧 Профессия",'Профессия',0],
+                ["🧬 Биология",'Биология',1],
+                ['🤧 Здоровье',"Здоровье",2],
+                ["🎯 Хобби","Хобби",3],
+                ["😨 Фобия","Фобия",4],
+                ["🧠 Характер","Характер",5],
+                ["📝 Факт","Факт",6],
+                ["🎒 Багаж","Багаж",7]
+            ]
+            row = 1
+            column=0
+            for label, char_name, char_index in chars:
+                btn = tk.Button(okno,text=label, **BUTTON_STYLE,
+                command=lambda cn=char_name:(requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':f'igrok{p1}', 'player2':f'igrok{p2}', 'char':cn, 'text':text}),
                 okno.destroy()))
                 btn.grid(row=row, column=column, **PADDING)
                 column += 1
@@ -182,6 +209,9 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text, array):
     if text=="Выбери тип карты, который должны открыть все до конца раунда":
         make_chars('every_per')
 
+    elif len(text.split()) == 3 and 'Поменяйся' in text:
+        make_net('Поменяться любой')
+
     elif len(text.split()) == 2 and 'Поменяйся' in text:
         make_net('Поменяться')
 
@@ -195,7 +225,7 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text, array):
         get_in = requests.get(f'http://{ip}/rooms/{code}/uslovie/last').json()
         print(get_in)
         okno.destroy()
-        usl_okno(player, icon_png, icon_ico, players, code, ip, get_in)
+        usl_okno(player, icon_png, icon_ico, players, code, ip, get_in, array)
 
     elif 'любую' in text:
         make_net('Любая')
