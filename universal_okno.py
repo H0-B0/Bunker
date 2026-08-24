@@ -501,6 +501,7 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
             def usl_button(self):
                 if self.usl.get() == 0:
                     requests.post(f'http://{server_ip}/rooms/{code}/update', json={'player':f'igrok{self.number}', 'card':'Условие', 'value':'hidden'})
+                    self.act_usl.grid_forget()
                 else:
                     requests.post(f'http://{server_ip}/rooms/{code}/update', json={'player':f'igrok{self.number}', 'card':'Условие', 'value':self.massiv[8]})
                     self.act_usl.grid(column=0,row=18,sticky='e')

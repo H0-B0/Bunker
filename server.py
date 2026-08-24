@@ -113,7 +113,6 @@ async def get_socket(websocket:WebSocket, room_code:str):
                 except asyncio.TimeoutError:
                     print("Клиент не ответил на ping")
                     break
-                print(f"Отправлен ping в комнату {room_code}")
     except WebSocketDisconnect:
         webs[room_code].remove(websocket)
 
@@ -135,7 +134,6 @@ async def create_room(room_code: str, data: RoomData):
     print(f'Комната {room_code} создана')
     print(f'Данные: {data.play}')
     roomses[room_code] = data.play
-    return {"status": "ok", "message": f"Комната {room_code} успешно создана"}
 
 @app.post('/rooms/{room_code}/voicess')
 async def post_voices(room_code:str, data:RoomData):
@@ -156,13 +154,8 @@ async def add_locks(room_code:str, data:Locks):
 # Механика обновления характеристики у игрока
 @app.post("/rooms/{room_code}/update")
 async def update_room(room_code: str, data: CardUpdate):
-    if room_code not in roomses:
-        return {'status': 404, 'message': 'Комната не найдена'}
-    if data.player not in roomses[room_code]:
-        return {'status': 404, 'message': 'Игрок не найден'}
     roomses[room_code][data.player][data.card] = data.value
     await newsletter(room_code, ['main'])
-    return {'status': 200, 'message': 'OK'}
 
 @app.get("/rooms/{room_code}")
 async def show_room(room_code: str):
