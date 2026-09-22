@@ -16,6 +16,32 @@ import websockets
 import threading
 import json
 
+class ToolTip:
+    def __init__(self, widget, text):
+        self.widget = widget
+        self.text = text
+        self.tip_window = None
+        widget.bind("<Enter>", self.show_tip)
+        widget.bind("<Leave>", self.hide_tip)
+
+    def show_tip(self, event=None):
+        if self.tip_window or not self.text:
+            return
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + 20
+        self.tip_window = tw = tk.Toplevel(self.widget)
+        tw.wm_overrideredirect(True)
+        tw.wm_geometry(f"+{x}+{y}")
+        label = tk.Label(tw, text=self.text, justify="left",
+                         background="#2D2D2D", foreground="#E0E0E0",
+                         relief="solid", borderwidth=1, font=("Arial", 10))
+        label.pack(ipadx=4, ipady=2)
+
+    def hide_tip(self, event=None):
+        if self.tip_window:
+            self.tip_window.destroy()
+            self.tip_window = None
+
 # Нааходим БД и картинки
 def get_resource_path(relative_path):
     try:
@@ -629,34 +655,53 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
                 self.chek_prof = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.prof_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.prof)
 
+                ToolTip(self.chek_prof, 'Открыть или скрыть профессию')
+
                 self.chek_bio = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.bio_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.bio)
+
+                ToolTip(self.chek_bio, 'Открыть или скрыть биологию')
 
                 self.chek_heal = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.heal_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.heal)
 
+                ToolTip(self.chek_heal, 'Открыть или скрыть здоровье')
+
                 self.chek_hobby = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.hoby_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.hoby)
+
+                ToolTip(self.chek_hobby, 'Открыть или скрыть хобби')
 
                 self.chek_fobya = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.fobia_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.fobia)
 
+                ToolTip(self.chek_fobya, 'Открыть или скрыть фобию')
+
                 self.chek_char = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.char_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.char)
+
+                ToolTip(self.chek_char, 'Открыть или скрыть характер')
 
                 self.chek_fact = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.fact_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.fiact)
 
+                ToolTip(self.chek_fact, 'Открыть или скрыть факт')
+
                 self.chek_bag = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.bag_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.bag)
 
+                ToolTip(self.chek_bag, 'Открыть или скрыть багаж')
+
                 self.chek_usl = tk.Checkbutton(container, text='', background=BG_COLOR, fg=GREEN_ACCENT, command=self.usl_button,
                                         selectcolor=BG_COLOR, activebackground=BG_COLOR, variable=self.usl)
+
+                ToolTip(self.chek_usl, 'Открыть или скрыть условие')
                 
                 self.act_usl = tk.Button(container, text='Активировать условие', background='#4A4A2A', font=13,fg='yellow', command=self.activate_usl)
 
                 left_button = tk.Button(container, text='☣', font=13, fg='yellow', bg='#4A4A2A', 
                                     command=lambda:left(room_info[0][1], icon_png, icon_ico, db_path))
+                ToolTip(left_button, 'Апокалипсис')
                 left_button.grid(column=0,row=19)
 
                 self.izgnanie = tk.Button(container, text='ПРОГОЛОСОВАТЬ', font=("Arial", 12, "bold"), bg=BG_COLOR, fg=RED_ACCENT,
@@ -667,10 +712,12 @@ def game_okno(player, icon_png, icon_ico, db_path, max_p, code='', server_ip='12
 
                 question = tk.Button(container, text='❓', font=13, fg='yellow', bg='#4A4A2A',
                                 command=lambda:right1(room_info[0][1], icon_png, icon_ico, db_path))
+                ToolTip(question, 'Раунды')
                 question.grid(column=4,row=18)
 
                 ugroza = tk.Button(container, text='⚡', font=13, fg='yellow', bg='#4A4A2A',
                                 command=self.right_window)
+                ToolTip(ugroza, 'Открыть угрозу(Закончить игру)')
                 ugroza.grid(column=4,row=19)
 
                 # Упаковываем page1
