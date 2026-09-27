@@ -1,11 +1,11 @@
 import sys
 import os
+
 # Добавляем текущую папку в путь поиска модулей – важно для PyInstaller
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 import uvicorn
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
 import json
@@ -18,78 +18,89 @@ golosa = 0
 # Сейчас бесполезно, но когда будет глобальный сервер, будет полезно. Будет выглядеть Код:Вся инфа комнаты
 roomses = {}
 
-#Список неизгнанных игроков
+# Список неизгнанных игроков
 array = []
 
-#Цифры - игроки, за чьи номера нельзя встать
+# Цифры - игроки, за чьи номера нельзя встать
 players = []
 
-#Локи - Тут у игроков будет последний лок. Напротив номера игрока заблокированная характеристика удаляющая чекбокс
+# Локи - Тут у игроков будет последний лок. Напротив номера игрока заблокированная характеристика удаляющая чекбокс
 locks = {}
 
-#Все условия сыгранные игроками
+# Все условия сыгранные игроками
 uslovies = []
 
-#Игрок:Количество голосов
+# Игрок:Количество голосов
 voices = {}
 
-#Логи, где записано какой игрок за какого проголосовал
+# Логи, где записано какой игрок за какого проголосовал
 logs = []
 
-#Переменная последнего изгнанного игрока
+# Переменная последнего изгнанного игрока
 last = 0
 
 # Сокеты игроков по кодам комнат
 webs = {}
 
+
 class Locks(BaseModel):
-    locks:dict
+    locks: dict
+
 
 class Player(BaseModel):
-    player:int
+    player: int
+
 
 class RoomData(BaseModel):
     play: dict
+
 
 class CardUpdate(BaseModel):
     player: str
     card: str
     value: str
 
+
 class Array(BaseModel):
     array: list
 
+
 class EveryChar(BaseModel):
-    character:str
-    players:list
-    char_number:int
-    text:str
+    character: str
+    players: list
+    char_number: int
+    text: str
+
 
 class DealChar(BaseModel):
-    player1:str
-    player2:str
-    char:str
-    text:str
+    player1: str
+    player2: str
+    char: str
+    text: str
+
 
 class OnlyTwoPlayers(BaseModel):
-    player1:str
-    player2:str
-    text:str
+    player1: str
+    player2: str
+    text: str
+
 
 class OpenChar(BaseModel):
-    player:str
-    character:str
-    players:list
-    char_number:int
-    text:str
+    player: str
+    character: str
+    players: list
+    char_number: int
+    text: str
+
 
 class AddVoice(BaseModel):
-    player1:int
-    player2:int
+    player1: int
+    player2: int
+
 
 # Функция принятия сокета игроков
 @app.websocket("/ws/{room_code}")
-async def get_socket(websocket:WebSocket, room_code:str):
+async def get_socket(websocket: WebSocket, room_code: str):
     global webs
     await websocket.accept()
     if room_code not in webs:
@@ -99,7 +110,7 @@ async def get_socket(websocket:WebSocket, room_code:str):
         while True:
             try:
                 data = await asyncio.wait_for(websocket.receive_text(), timeout=30)
-                if data == 'pong':
+                if data == "pong":
                     continue
                 print(data)
             except asyncio.TimeoutError:
@@ -116,8 +127,9 @@ async def get_socket(websocket:WebSocket, room_code:str):
     except WebSocketDisconnect:
         webs[room_code].remove(websocket)
 
+
 # Функция отправки писем счастья игрокам
-async def newsletter(room_code:str, msg:list):
+async def newsletter(room_code: str, msg: list):
     if room_code not in webs:
         return
     else:
@@ -128,15 +140,17 @@ async def newsletter(room_code:str, msg:list):
             except:
                 webs[room_code].remove(ws)
 
+
 # Механика создания комнаты
 @app.post("/rooms/{room_code}")
 async def create_room(room_code: str, data: RoomData):
-    print(f'Комната {room_code} создана')
-    print(f'Данные: {data.play}')
+    print(f"Комната {room_code} создана")
+    print(f"Данные: {data.play}")
     roomses[room_code] = data.play
 
-@app.post('/rooms/{room_code}/voicess')
-async def post_voices(room_code:str, data:RoomData):
+
+@app.post("/rooms/{room_code}/voicess")
+async def post_voices(room_code: str, data: RoomData):
     global voices
     voices = {}
     keys = list(data.play.keys())
@@ -145,42 +159,48 @@ async def post_voices(room_code:str, data:RoomData):
         voices[int(keys[key])] = int(values[key])
     print(voices)
 
-@app.post('/rooms/{room_code}/locks')
-async def add_locks(room_code:str, data:Locks):
+
+@app.post("/rooms/{room_code}/locks")
+async def add_locks(room_code: str, data: Locks):
     global locks
     locks = data.locks
-    print(f'Принят локс: {locks}')
+    print(f"Принят локс: {locks}")
+
 
 # Механика обновления характеристики у игрока
 @app.post("/rooms/{room_code}/update")
 async def update_room(room_code: str, data: CardUpdate):
     roomses[room_code][data.player][data.card] = data.value
-    await newsletter(room_code, ['main'])
+    await newsletter(room_code, ["main"])
+
 
 @app.get("/rooms/{room_code}")
 async def show_room(room_code: str):
     if room_code not in roomses:
-        return {'status': 404, 'message': 'Комната не найдена'}
+        return {"status": 404, "message": "Комната не найдена"}
     return roomses[room_code]
 
-@app.get('/rooms')
+
+@app.get("/rooms")
 async def show_rooms():
     return list(roomses.keys())
 
+
 # Механика соответствия количества игроков
 @app.post("/rooms/{room_code}/spisok")
-async def post_array(room_code:str, data:Array):
+async def post_array(room_code: str, data: Array):
     global array
     array = data.array
-    print(f'Получен список {array}')
+    print(f"Получен список {array}")
+
 
 @app.get("/rooms/{room_code}/spisok")
 async def get_array():
-    print(f'Отправлен список {array}')
+    print(f"Отправлен список {array}")
     return array
 
 
-async def izgnat(room_code:str):
+async def izgnat(room_code: str):
     global last
     global logs
     global golosa
@@ -190,25 +210,25 @@ async def izgnat(room_code:str):
     try:
         for i in first_values:
             values.append(int(i))
-    except ValueError: 
+    except ValueError:
         values.append(0)
     max_voice = max(values)
     count = values.count(max_voice)
     if last > 1:
-        if len(array)+1 == golosa:
+        if len(array) + 1 == golosa:
             if count == 1:
                 array.remove(keys[values.index(max_voice)])
                 golosa = 0
                 logs = []
                 last = keys[values.index(max_voice)]
-                for i in range(min(array),max(array)+1):
+                for i in range(min(array), max(array) + 1):
                     voices[i] = 0
-                voices[keys[values.index(max_voice)]] = 'Изгнан'
-                print(f'Произошло изгание игрока {keys[values.index(max_voice)]}')
-                await newsletter(room_code, ['voices', 'last', 'array'])
+                voices[keys[values.index(max_voice)]] = "Изгнан"
+                print(f"Произошло изгание игрока {keys[values.index(max_voice)]}")
+                await newsletter(room_code, ["voices", "last", "array"])
             else:
                 golosa = 0
-                for i in range(min(array),max(array)+1):
+                for i in range(min(array), max(array) + 1):
                     voices[i] = 0
                 logs = []
 
@@ -219,46 +239,49 @@ async def izgnat(room_code:str):
                 golosa = 0
                 logs = []
                 last = keys[values.index(max_voice)]
-                for i in range(min(array),max(array)+1):
+                for i in range(min(array), max(array) + 1):
                     voices[i] = 0
-                voices[keys[values.index(max_voice)]] = 'Изгнан'
-                print(f'Произошло изгание игрока {keys[values.index(max_voice)]}')
-                await newsletter(room_code, ['voices', 'last', 'array'])
+                voices[keys[values.index(max_voice)]] = "Изгнан"
+                print(f"Произошло изгание игрока {keys[values.index(max_voice)]}")
+                await newsletter(room_code, ["voices", "last", "array"])
             else:
                 golosa = 0
-                for i in range(min(array),max(array)+1):
+                for i in range(min(array), max(array) + 1):
                     voices[i] = 0
                 logs = []
 
-@app.get('/rooms/{room_code}/last')
-async def return_last(room_code:str):
+
+@app.get("/rooms/{room_code}/last")
+async def return_last(room_code: str):
     return last
 
-# Механики для добавления/удаления голосов
-@app.post('/rooms/{room_code}/voice_a')
-async def voice_for_player(room_code:str, data:AddVoice):
-    global golosa
-    print(f'Добавлен лог: {data.player1}:{data.player2}')
 
-    logs.append({data.player1:data.player2})
-    print(f'Логи сейчас: {logs}')
+# Механики для добавления/удаления голосов
+@app.post("/rooms/{room_code}/voice_a")
+async def voice_for_player(room_code: str, data: AddVoice):
+    global golosa
+    print(f"Добавлен лог: {data.player1}:{data.player2}")
+
+    logs.append({data.player1: data.player2})
+    print(f"Логи сейчас: {logs}")
 
     if data.player2 not in voices:
         voices[data.player2] = 1
     else:
         voices[data.player2] += 1
-    print(f'У игрока {data.player2} {voices[data.player2]} голосов')
+    print(f"У игрока {data.player2} {voices[data.player2]} голосов")
     print(voices)
 
     golosa += 1
 
-    print(f'Игроки проголосовавшие сейчас: {golosa}')
+    print(f"Игроки проголосовавшие сейчас: {golosa}")
     await izgnat(room_code)
 
-    await newsletter(room_code, ['voices'])
+    await newsletter(room_code, ["voices"])
 
-@app.post('/rooms/{room_code}/voice_d')
-async def del_voice_of_player(room_code:str, data:Player):
+
+@app.post("/rooms/{room_code}/voice_d")
+async def del_voice_of_player(room_code: str, data: Player):
     global golosa
     global voices
     log = {}
@@ -272,41 +295,48 @@ async def del_voice_of_player(room_code:str, data:Player):
     voices[person] -= 1
 
     golosa -= 1
-    await newsletter(room_code, ['voices'])
+    await newsletter(room_code, ["voices"])
 
-@app.get('/rooms/{room_code}/voice_p')
-async def get_voices(room_code:str):
-    print(f'Отправлены голоса - {voices}')
+
+@app.get("/rooms/{room_code}/voice_p")
+async def get_voices(room_code: str):
+    print(f"Отправлены голоса - {voices}")
     return voices
 
-@app.get('/rooms/{room_code}/igroks')
-async def get_igroks(room_code:str):
+
+@app.get("/rooms/{room_code}/igroks")
+async def get_igroks(room_code: str):
     return golosa
+
 
 # Механика удержания номера за игроком
 @app.post("/rooms/{room_code}/players/del")
-async def del_player(room_code:str, data:Player):
+async def del_player(room_code: str, data: Player):
     if data.player in players:
         players.remove(data.player)
-        print(f'Удален игрок {data.player}')
+        print(f"Удален игрок {data.player}")
     else:
-        print(f'Игрок {data.player} уже удален')
+        print(f"Игрок {data.player} уже удален")
         print(players)
 
+
 @app.post("/rooms/{room_code}/players/accept")
-async def accept_player(room_code:str, data:Player):
+async def accept_player(room_code: str, data: Player):
     players.append(data.player)
     print(f"Принят игрок {data.player}")
 
+
 @app.get("/rooms/{room_code}/players")
-async def get_players(room_code:str):
+async def get_players(room_code: str):
     print(players)
     return players
 
+
 # Механика условий
 
-@app.post('/rooms/{room_code}/uslovie/every')
-async def every_char(room_code:str, data:EveryChar):
+
+@app.post("/rooms/{room_code}/uslovie/every")
+async def every_char(room_code: str, data: EveryChar):
     # Если говорить коротко, то вся эта часть чисто для того, чтобы найти минимальное количество hidden у неизганных игроков
     room_players = roomses[room_code]
     hidden_counts = {}
@@ -314,7 +344,7 @@ async def every_char(room_code:str, data:EveryChar):
     for player in room_players:
         for char in room_players[player]:
             if schet in array:
-                if room_players[player][char] == 'hidden':
+                if room_players[player][char] == "hidden":
                     if player not in hidden_counts:
                         hidden_counts[player] = 1
                     else:
@@ -326,23 +356,27 @@ async def every_char(room_code:str, data:EveryChar):
     # А тут, если эта характеристика открыта, то ничего не делаем, а если закрыта делаем ее открытой и ставим в локс, чтобы потом убрать чекбокс у игрока, чтобы он не скрыл ее у себя
     for player in hidden_counts.keys():
         if hidden_counts[player] > min_hidden:
-            if room_players[player][data.character] == 'hidden':
+            if room_players[player][data.character] == "hidden":
                 locks[player] = data.character
-                igrok = int(player.replace('igrok',''))
-                roomses[room_code][player][data.character] = data.players[igrok-1][data.char_number]
+                igrok = int(player.replace("igrok", ""))
+                roomses[room_code][player][data.character] = data.players[igrok - 1][
+                    data.char_number
+                ]
 
-    print(f'Лок обновлен: {locks}')
+    print(f"Лок обновлен: {locks}")
     uslovies.append(data.text)
-    await newsletter(room_code, ['main', 'locks'])
+    await newsletter(room_code, ["main", "locks"])
 
-@app.get('/rooms/{room_code}/uslovie/locks')
-async def get_locks(room_code:str):
-    print(f'Отправлены локи: {locks}')
+
+@app.get("/rooms/{room_code}/uslovie/locks")
+async def get_locks(room_code: str):
+    print(f"Отправлены локи: {locks}")
     return locks
 
-@app.post('/rooms/{room_code}/uslovie/char')
+
+@app.post("/rooms/{room_code}/uslovie/char")
 async def deal_one_char(room_code: str, data: DealChar):
-    print(f'Приняты игроки {data.player1} и {data.player2}')
+    print(f"Приняты игроки {data.player1} и {data.player2}")
 
     player_one_char = roomses[room_code][data.player1][data.char]
     player_two_char = roomses[room_code][data.player2][data.char]
@@ -351,8 +385,8 @@ async def deal_one_char(room_code: str, data: DealChar):
     # print(f'Характеристики игрока 2 - {player_two_char}')
 
     # Если у кого-то hidden — не меняем
-    if player_one_char == 'hidden' or player_two_char == 'hidden':
-        print('Одна из характеристик скрыта — обмен невозможен')
+    if player_one_char == "hidden" or player_two_char == "hidden":
+        print("Одна из характеристик скрыта — обмен невозможен")
         return
 
     # Меняем местами
@@ -360,112 +394,143 @@ async def deal_one_char(room_code: str, data: DealChar):
     roomses[room_code][data.player2][data.char] = player_one_char
 
     # Правильные выводы
-    print(f'Теперь у {data.player1} характеристика: {roomses[room_code][data.player1][data.char]}')
-    print(f'Теперь у {data.player2} характеристика: {roomses[room_code][data.player2][data.char]}')
+    print(
+        f"Теперь у {data.player1} характеристика: {roomses[room_code][data.player1][data.char]}"
+    )
+    print(
+        f"Теперь у {data.player2} характеристика: {roomses[room_code][data.player2][data.char]}"
+    )
 
-    print(f'''Полный список:
-{roomses[room_code]}''')
+    print(f"""Полный список:
+{roomses[room_code]}""")
 
     locks[data.player1] = data.char
     locks[data.player2] = data.char
     uslovies.append(data.text)
-    await newsletter(room_code, ['main', 'locks'])
+    await newsletter(room_code, ["main", "locks"])
 
-@app.post('/rooms/{room_code}/uslovie/age')
-async def deal_age(room_code:str, data:OnlyTwoPlayers):
-    player1 = f'igrok{data.player1}'
-    player2 = f'igrok{data.player2}'
-    print(f'Приняты игроки {player1} и {player2}')
-    print(f'''Биология {player1} игрока - {roomses[room_code][player1]['Биология']}
-Биология {player2} игрока - {roomses[room_code][player2]['Биология']}''')
-    if roomses[room_code][player1]['Биология'] == 'hidden' or roomses[room_code][player2]['Биология'] == 'hidden': print('Обмен невозможен')
+
+@app.post("/rooms/{room_code}/uslovie/age")
+async def deal_age(room_code: str, data: OnlyTwoPlayers):
+    player1 = f"igrok{data.player1}"
+    player2 = f"igrok{data.player2}"
+    print(f"Приняты игроки {player1} и {player2}")
+    print(f"""Биология {player1} игрока - {roomses[room_code][player1]["Биология"]}
+Биология {player2} игрока - {roomses[room_code][player2]["Биология"]}""")
+    if (
+        roomses[room_code][player1]["Биология"] == "hidden"
+        or roomses[room_code][player2]["Биология"] == "hidden"
+    ):
+        print("Обмен невозможен")
     else:
-        age = roomses[room_code][player2]['Биология'].split()[1]
-        first_age = roomses[room_code][player1]['Биология'].split()
+        age = roomses[room_code][player2]["Биология"].split()[1]
+        first_age = roomses[room_code][player1]["Биология"].split()
         first_age[1] = age
-        new_biology = ' '.join(first_age)
-        roomses[room_code][player1]['Биология'] = new_biology
-        print(f'Новая биология {player1} игрока - {roomses[room_code][player1]['Биология']}')
+        new_biology = " ".join(first_age)
+        roomses[room_code][player1]["Биология"] = new_biology
+        print(
+            f"Новая биология {player1} игрока - {roomses[room_code][player1]['Биология']}"
+        )
     uslovies.append(data.text)
-    await newsletter(room_code, ['main', 'locks'])
+    await newsletter(room_code, ["main", "locks"])
 
-@app.post('/rooms/{room_code}/uslovie/child')
-async def get_child(room_code:str, data:OnlyTwoPlayers):
-    player1 = f'igrok{data.player1}'
-    player2 = f'igrok{data.player2}'
-    print(f'Приняты игроки {player1} и {player2}')
-    print(f'''Биология {player1} игрока - {roomses[room_code][player1]['Биология']}
-Биология {player2} игрока - {roomses[room_code][player2]['Биология']}''')
-    if roomses[room_code][player2]['Биология'] == 'hidden' or roomses[room_code][player1]['Биология'] == 'hidden':
-        print('Надо было открыть сначала')
+
+@app.post("/rooms/{room_code}/uslovie/child")
+async def get_child(room_code: str, data: OnlyTwoPlayers):
+    player1 = f"igrok{data.player1}"
+    player2 = f"igrok{data.player2}"
+    print(f"Приняты игроки {player1} и {player2}")
+    print(f"""Биология {player1} игрока - {roomses[room_code][player1]["Биология"]}
+Биология {player2} игрока - {roomses[room_code][player2]["Биология"]}""")
+    if (
+        roomses[room_code][player2]["Биология"] == "hidden"
+        or roomses[room_code][player1]["Биология"] == "hidden"
+    ):
+        print("Надо было открыть сначала")
     else:
-        bio = roomses[room_code][player2]['Биология'].split()
-        if 'Женщина' in bio[0]:
-            print(f'{player2} подходит для оплодотворения')
-            gender = f'{bio[0]} беременна,'
+        bio = roomses[room_code][player2]["Биология"].split()
+        if "Женщина" in bio[0]:
+            print(f"{player2} подходит для оплодотворения")
+            gender = f"{bio[0]} беременна,"
             bio[0] = gender
-            new_bio = ' '.join(bio)
-            roomses[room_code][player2]['Биология'] = new_bio
+            new_bio = " ".join(bio)
+            roomses[room_code][player2]["Биология"] = new_bio
         else:
-            print('Брат, это мужик')
+            print("Брат, это мужик")
     uslovies.append(data.text)
-    await newsletter(room_code, ['main', 'locks'])
+    await newsletter(room_code, ["main", "locks"])
 
-@app.get('/rooms/{room_code}/uslovie/last')
-async def play_last_card(room_code:str):
+
+@app.get("/rooms/{room_code}/uslovie/last")
+async def play_last_card(room_code: str):
     print(uslovies[-1])
     return uslovies[-1]
 
-@app.post('/rooms/{room_code}/uslovie/open')
-async def open_char(room_code:str, data:OpenChar):
-    print(f'Данные будут открыты у игрока {data.player}')
-    number = int(data.player.replace('igrok',''))
-    char = data.players[number-1][data.char_number]
-    print(f'Будет взята характеристика {data.character}')
-    print(f'Старая характеристика игрока - {roomses[room_code][data.player][data.character]}')
+
+@app.post("/rooms/{room_code}/uslovie/open")
+async def open_char(room_code: str, data: OpenChar):
+    print(f"Данные будут открыты у игрока {data.player}")
+    number = int(data.player.replace("igrok", ""))
+    char = data.players[number - 1][data.char_number]
+    print(f"Будет взята характеристика {data.character}")
+    print(
+        f"Старая характеристика игрока - {roomses[room_code][data.player][data.character]}"
+    )
     roomses[room_code][data.player][data.character] = char
-    print(f'Новая характеристика игрока - {roomses[room_code][data.player][data.character]}')
+    print(
+        f"Новая характеристика игрока - {roomses[room_code][data.player][data.character]}"
+    )
     uslovies.append(data.text)
     locks[data.player] = data.character
-    await newsletter(room_code, ['main', 'locks'])
+    await newsletter(room_code, ["main", "locks"])
 
-@app.post('/rooms/{room_code}/uslovie/zapret')
-async def close_uslovie(room_code:str, data:Player):
-    igrok = f'igrok{data.player}'
-    print(f'Принят игрок {igrok}')
-    locks[igrok] = 'Условие'
-    print(f'У игрока {igrok} заблокировано условие')
+
+@app.post("/rooms/{room_code}/uslovie/zapret")
+async def close_uslovie(room_code: str, data: Player):
+    igrok = f"igrok{data.player}"
+    print(f"Принят игрок {igrok}")
+    locks[igrok] = "Условие"
+    print(f"У игрока {igrok} заблокировано условие")
     uslovies.append("Запрети использовать карту условия")
-    await newsletter(room_code, ['main', 'locks'])
+    await newsletter(room_code, ["main", "locks"])
 
-@app.post('/rooms/{room_code}/uslovie/gender')
-async def change_gender(room_code:str, data:Player):
-    player = f'igrok{data.player}'
-    if roomses[room_code][player]['Биология'] == 'hidden':
-        print('Биология скрыта. ГГ')
+
+@app.post("/rooms/{room_code}/uslovie/gender")
+async def change_gender(room_code: str, data: Player):
+    player = f"igrok{data.player}"
+    if roomses[room_code][player]["Биология"] == "hidden":
+        print("Биология скрыта. ГГ")
         return
     else:
-        bio = roomses[room_code][player]['Биология']
-        if 'Мужчина' in bio:
-            if 'гей' in bio:
-                roomses[room_code][player]['Биология'] = bio.replace('Мужчина-гей', 'Женщина-лесбиянка')
+        bio = roomses[room_code][player]["Биология"]
+        if "Мужчина" in bio:
+            if "гей" in bio:
+                roomses[room_code][player]["Биология"] = bio.replace(
+                    "Мужчина-гей", "Женщина-лесбиянка"
+                )
             else:
-                roomses[room_code][player]['Биология'] = bio.replace('Мужчина', 'Женщина')
+                roomses[room_code][player]["Биология"] = bio.replace(
+                    "Мужчина", "Женщина"
+                )
 
-            print('Трансформация успешна')
-        elif 'Женщина' in bio:
-            if 'беременна' in bio:
-                print('Трансформация невозможна, беременных мужиков не бывает')
+            print("Трансформация успешна")
+        elif "Женщина" in bio:
+            if "беременна" in bio:
+                print("Трансформация невозможна, беременных мужиков не бывает")
             else:
-                if 'лесбиянка' in bio:
-                    roomses[room_code][player]['Биология'] = bio.replace('Женщина-лесбиянка', 'Мужчина-гей')
+                if "лесбиянка" in bio:
+                    roomses[room_code][player]["Биология"] = bio.replace(
+                        "Женщина-лесбиянка", "Мужчина-гей"
+                    )
                 else:
-                    roomses[room_code][player]['Биология'] = bio.replace('Женщина', 'Мужчина')
-                    print('Трансформация получилась')
-        locks[player] = 'Биология'
+                    roomses[room_code][player]["Биология"] = bio.replace(
+                        "Женщина", "Мужчина"
+                    )
+                    print("Трансформация получилась")
+        locks[player] = "Биология"
     uslovies.append("Измени пол себе или другому игроку")
-    await newsletter(room_code, ['main', 'locks'])
+    await newsletter(room_code, ["main", "locks"])
 
 
-# if __name__ == "__main__":
-#     uvicorn.run(app, host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)

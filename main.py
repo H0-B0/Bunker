@@ -2,10 +2,10 @@ import tkinter as tk
 import os
 import sys
 import shutil
-import traceback
 from sozdat import sozdat
 from connect import connect
 from rules import rules
+
 
 # Находим БД и картинки в приложении
 def get_resource_path(relative_path):
@@ -15,29 +15,31 @@ def get_resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
+
 def get_app_data_path():
-    if hasattr(sys, '_MEIPASS'):
-        if sys.platform.startswith('win'):
-            app_data_path = os.path.join(os.environ['LOCALAPPDATA'], 'BunkerGame')
+    if hasattr(sys, "_MEIPASS"):
+        if sys.platform.startswith("win"):
+            app_data_path = os.path.join(os.environ["LOCALAPPDATA"], "BunkerGame")
         else:
             home = os.path.expanduser("~")
-            app_data_path = os.path.join(home, '.local', 'share', 'BunkerGame')
+            app_data_path = os.path.join(home, ".local", "share", "BunkerGame")
     else:
-        app_data_path = os.path.join(os.path.abspath("."), 'BunkerGame_Data')
+        app_data_path = os.path.join(os.path.abspath("."), "BunkerGame_Data")
     os.makedirs(app_data_path, exist_ok=True)
     return app_data_path
 
+
 def setup_resources():
     app_data_path = get_app_data_path()
-    resource_path = get_resource_path('.')
+    resource_path = get_resource_path(".")
     resource_files = os.listdir(resource_path)
-    db_files = [f for f in resource_files if f.endswith('.db')]
+    db_files = [f for f in resource_files if f.endswith(".db")]
     if not db_files:
         raise Exception("Не найдена БД в ресурсах exe!")
     DB_NAME = db_files[0]
 
-    icon_ico_path = os.path.join(app_data_path, 'bunker.ico')
-    icon_png_path = os.path.join(app_data_path, 'bunker.png')
+    icon_ico_path = os.path.join(app_data_path, "bunker.ico")
+    icon_png_path = os.path.join(app_data_path, "bunker.png")
     db_path = os.path.join(app_data_path, DB_NAME)
 
     # Всегда копируем БД (перезаписываем)
@@ -47,7 +49,7 @@ def setup_resources():
 
     # Копируем PNG иконку, если отсутствует
     if not os.path.exists(icon_png_path):
-        source_png = get_resource_path('bunker.png')
+        source_png = get_resource_path("bunker.png")
         if os.path.exists(source_png):
             shutil.copy2(source_png, icon_png_path)
             print("PNG иконка скопирована")
@@ -56,7 +58,7 @@ def setup_resources():
 
     # Копируем ICO иконку, если отсутствует
     if not os.path.exists(icon_ico_path):
-        source_ico = get_resource_path('bunker.ico')
+        source_ico = get_resource_path("bunker.ico")
         if os.path.exists(source_ico):
             shutil.copy2(source_ico, icon_ico_path)
             print("ICO иконка скопирована")
@@ -65,38 +67,43 @@ def setup_resources():
 
     return icon_png_path, icon_ico_path, db_path
 
+
 # Получение путей
 ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH = setup_resources()
 print(f"DB_PATH: {DB_PATH}, exists={os.path.exists(DB_PATH)}")
+
 
 # Переход к созданию комнаты
 def made():
     okno.destroy()
     sozdat(ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH)
 
+
 # Переход к присоединению к комнате
 def prisoedinitsa():
     okno.destroy()
     connect(ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH)
+
 
 # Переход к правилам
 def book():
     okno.destroy()
     rules(ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH)
 
+
 # Создание окна
 okno = tk.Tk()
 okno.title("Бункер")
-okno.geometry('1200x1000')
+okno.geometry("1200x1000")
 
 # Взависимости от окна идет полноэкранный режим
-if sys.platform.startswith('win'):
-    okno.state('zoomed')
+if sys.platform.startswith("win"):
+    okno.state("zoomed")
 else:
     try:
-        okno.attributes('-zoomed', True)
+        okno.attributes("-zoomed", True)
     except:
-        okno.state('normal')
+        okno.state("normal")
 
 # Цвета
 BG_COLOR = "#1A1A1A"
@@ -108,7 +115,7 @@ BUTTON_ACTIVE = "#CC5500"
 okno.configure(bg=BG_COLOR)
 
 # Установка иконки взависимости от платформы
-if sys.platform.startswith('win') and os.path.exists(ICON_ICO_PATH):
+if sys.platform.startswith("win") and os.path.exists(ICON_ICO_PATH):
     okno.iconbitmap(ICON_ICO_PATH)
 elif os.path.exists(ICON_PNG_PATH):
     try:
@@ -130,7 +137,7 @@ BUTTON_STYLE = {
     "activebackground": BUTTON_ACTIVE,
     "activeforeground": TEXT_COLOR,
     "relief": "raised",
-    "bd": 3
+    "bd": 3,
 }
 
 # Контент
@@ -145,7 +152,9 @@ soz.pack(pady=10)
 separator = tk.Frame(okno, height=2, bg=ACCENT_COLOR)
 separator.pack(fill="x", padx=100, pady=30)
 
-label2 = tk.Label(okno, text="Присоединиться к комнате", **ZAGOLOVOK_STYLE, fg=TEXT_COLOR)
+label2 = tk.Label(
+    okno, text="Присоединиться к комнате", **ZAGOLOVOK_STYLE, fg=TEXT_COLOR
+)
 label2.pack(pady=(20, 10))
 con = tk.Button(okno, text="🔗", command=prisoedinitsa, **BUTTON_STYLE)
 con.pack(pady=10)
@@ -158,7 +167,13 @@ label3.pack(pady=(20, 10))
 pravila = tk.Button(okno, text="📜", command=book, **BUTTON_STYLE)
 pravila.pack(pady=10)
 
-footer = tk.Label(okno, text="⚡ Выживайте любой ценой ⚡",
-                 font=("Arial", 10, "italic"), bg=BG_COLOR, fg=TEXT_COLOR)
+footer = tk.Label(
+    okno,
+    text="⚡ Выживайте любой ценой ⚡",
+    font=("Arial", 10, "italic"),
+    bg=BG_COLOR,
+    fg=TEXT_COLOR,
+)
 footer.pack(side="bottom", pady=20)
 okno.mainloop()
+
