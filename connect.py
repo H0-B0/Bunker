@@ -73,7 +73,6 @@ def connect(icon_png, icon_ico, db_path):
                         )
                         # Сбрасываем label на 0
                         label1.config(text="🧍 Ваш номер: 0")
-                        player = 0
             except sq.Error as e:
                 max_label.config(text=f"💀 Ошибка системы: {e}", fg="#FF0000")
                 status_label.config(text="⚡ Критический сбой", fg="#FF0000")
@@ -88,7 +87,6 @@ def connect(icon_png, icon_ico, db_path):
             error_label.config(text="")
             # Сбрасываем label на 0
             label1.config(text="🧍 Ваш номер: 0")
-            player = 0
         game_code = enter.get()
 
     # Проверяет занятые номера и обновляет состояние кнопки

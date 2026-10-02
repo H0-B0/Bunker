@@ -492,7 +492,7 @@ def game_okno(
                 requests.post(
                     f"http://{server_ip}/rooms/{code}/players/del",
                     json={"player": player},
-                    timeout=10,
+                    timeout=0,
                 )
             except Exception:
                 window.destroy()
@@ -1297,4 +1297,3 @@ def game_okno(
 
         mb.showerror("Ошибка БД", f"Не удалось подключиться к базе данных: {e}")
         return
-
