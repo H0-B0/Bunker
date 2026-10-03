@@ -27,8 +27,6 @@ def right2(code, icon_png, icon_ico, db_path):
     BG_COLOR = "#1A1A1A"  # Тёмно-серый, почти чёрный
     TEXT_COLOR = "#E0E0E0"  # Светло-серый
     ACCENT_COLOR = "#FF7B30"  # Ржавый оранжевый
-    BUTTON_BG = "#2D2D2D"  # Тёмно-серый для кнопок
-    BUTTON_ACTIVE = "#CC5500"  # Тёмно-оранжевый при нажатии
 
     ZAGOLOVOK_STYLE = {
         "font": ("Arial", 12, "bold"),

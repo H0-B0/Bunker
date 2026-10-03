@@ -145,7 +145,7 @@ def usl_okno(player, icon_png, icon_ico, players, code, ip, text, array):
         elif attr == 'for_deal':
             row = 1
             column=0
-            for label, char_name in chars:
+            for label, char_name, char_index in chars:
                 btn = tk.Button(okno,text=label, **BUTTON_STYLE,
                 command=lambda cn=char_name:(requests.post(f'http://{ip}/rooms/{code}/uslovie/char', json={'player1':f'igrok{p1}', 'player2':f'igrok{p2}', 'char':cn, 'text':text}, timeout=10),
                 okno.destroy()))

@@ -11,7 +11,7 @@ def left(code, icon_png, icon_ico, db_path):
     conn = apsw.Connection(db_path)
     conn.pragma("key", key)
     cur = conn.cursor()
-    cur.execute(...)
+    cur.execute('SELECT kard, flats, apoc, years, mesto, ploshad FROM rooms WHERE code = ?', (code,))
     data = cur.fetchall()
     conn.close()
 
@@ -26,8 +26,6 @@ def left(code, icon_png, icon_ico, db_path):
     BG_COLOR = "#1A1A1A"
     TEXT_COLOR = "#E0E0E0"
     ACCENT_COLOR = "#FF7B30"
-    BUTTON_BG = "#2D2D2D"
-    BUTTON_ACTIVE = "#CC5500"
 
     HEADING_STYLE = {"font": ("Arial", 16, "bold"), "bg": BG_COLOR, "fg": ACCENT_COLOR}
     BUTTON_STYLE = {"font": ("Arial", 12), "bg": BG_COLOR, "fg": TEXT_COLOR}

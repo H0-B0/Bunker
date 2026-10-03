@@ -107,7 +107,7 @@ def sozdat(icon_png, icon_ico, db_path=None):
 
         okno.destroy()
 
-        game_okno(value2, icon_png, icon_ico, db_path, value1, "", server_ip)
+        game_okno(value2, icon_png, icon_ico, db_path, value1, "IJR", server_ip)
 
     def update_label1(event=None):
         # Обновление ролла с количеством игроков
