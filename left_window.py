@@ -1,15 +1,19 @@
 import tkinter as tk
-import sqlite3 as sq
+import apsw
+from crypto_db import get_or_create_key
 import os
 import sys
 
 # Основная функция
 def left(code, icon_png, icon_ico, db_path):
     # По коду вытаскиваем инфу для окна
-    with sq.connect(db_path) as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT kard, flats, apoc, years, mesto, ploshad FROM rooms WHERE code = ?", (code,))
-        data = cur.fetchall()
+    key = get_or_create_key()
+    conn = apsw.Connection(db_path)
+    conn.pragma("key", key)
+    cur = conn.cursor()
+    cur.execute(...)
+    data = cur.fetchall()
+    conn.close()
 
     tools = data[0][0]
     rooms = data[0][1]

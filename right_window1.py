@@ -1,17 +1,20 @@
-import sqlite3 as sq
+import apsw
+from crypto_db import get_or_create_key
 import tkinter as tk
 import os
 import sys
-
 
 # Основная функция
 def right2(code, icon_png, icon_ico, db_path):
 
     # Нахождение кода комнаты из переданного файла БД
-    with sq.connect(db_path) as dannie:  # ← ВАЖНО: используй db_path
-        cur = dannie.cursor()
-        cur.execute("SELECT ugroza FROM rooms WHERE code = ?", (code,))
-        data = cur.fetchall()[0][0].split(";")
+    key = get_or_create_key()
+    conn = apsw.Connection(db_path)
+    conn.pragma("key", key)
+    cur = conn.cursor()
+    cur.execute("SELECT ugroza FROM rooms WHERE code = ?", (code,))
+    data = cur.fetchall()[0][0].split(";")
+    conn.close()
 
     # Функция показывающая концовку
     def baton():

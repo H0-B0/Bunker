@@ -5,6 +5,7 @@ import shutil
 from sozdat import sozdat
 from connect import connect
 from rules import rules
+from crypto_db import init_database
 
 
 # Находим БД и картинки в приложении
@@ -31,46 +32,51 @@ def get_app_data_path():
 
 def setup_resources():
     app_data_path = get_app_data_path()
-    resource_path = get_resource_path(".")
-    resource_files = os.listdir(resource_path)
-    db_files = [f for f in resource_files if f.endswith(".db")]
-    if not db_files:
-        raise Exception("Не найдена БД в ресурсах exe!")
-    DB_NAME = db_files[0]
 
+    # Сначала ищем .db в BunkerGame_Data (там лежит рабочая зашифрованная база)
+    existing_dbs = [f for f in os.listdir(app_data_path) if f.endswith(".db")]
+
+    if existing_dbs:
+        DB_NAME = existing_dbs[0]
+        db_path = os.path.join(app_data_path, DB_NAME)
+        print(f"Используем существующую БД: {db_path}")
+    else:
+        # Базы нет — ищем ресурсную и копируем
+        resource_path = get_resource_path(".")
+        resource_files = os.listdir(resource_path)
+        db_files = [f for f in resource_files if f.endswith(".db")]
+        if not db_files:
+            raise Exception("Не найдена БД ни в BunkerGame_Data, ни в ресурсах!")
+        DB_NAME = db_files[0]
+        db_path = os.path.join(app_data_path, DB_NAME)
+        source_db = get_resource_path(DB_NAME)
+        shutil.copy2(source_db, db_path)
+        print(f"БД скопирована: {DB_NAME} -> {db_path}")
+
+    # Иконки (без изменений)
     icon_ico_path = os.path.join(app_data_path, "bunker.ico")
     icon_png_path = os.path.join(app_data_path, "bunker.png")
-    db_path = os.path.join(app_data_path, DB_NAME)
 
-    # Всегда копируем БД (перезаписываем)
-    source_db = get_resource_path(DB_NAME)
-    shutil.copy2(source_db, db_path)
-    print(f"БД скопирована (перезапись): {DB_NAME} -> {db_path}")
-
-    # Копируем PNG иконку, если отсутствует
     if not os.path.exists(icon_png_path):
         source_png = get_resource_path("bunker.png")
         if os.path.exists(source_png):
             shutil.copy2(source_png, icon_png_path)
             print("PNG иконка скопирована")
-    else:
-        print("PNG иконка уже существует")
 
-    # Копируем ICO иконку, если отсутствует
     if not os.path.exists(icon_ico_path):
         source_ico = get_resource_path("bunker.ico")
         if os.path.exists(source_ico):
             shutil.copy2(source_ico, icon_ico_path)
             print("ICO иконка скопирована")
-    else:
-        print("ICO иконка уже существует")
 
     return icon_png_path, icon_ico_path, db_path
-
 
 # Получение путей
 ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH = setup_resources()
 print(f"DB_PATH: {DB_PATH}, exists={os.path.exists(DB_PATH)}")
+
+# Инициализация базы: если ключа нет — создаём и шифруем базу
+init_database(DB_PATH)
 
 
 # Переход к созданию комнаты
@@ -176,4 +182,3 @@ footer = tk.Label(
 )
 footer.pack(side="bottom", pady=20)
 okno.mainloop()
-

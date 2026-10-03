@@ -1,5 +1,6 @@
 import tkinter as tk
-import sqlite3 as sq
+import apsw
+from crypto_db import get_or_create_key
 from left_window import left
 from right_window1 import right2
 from right_window2 import right1
@@ -69,54 +70,59 @@ def game_okno(
     print(f"okno4: server_ip = {server_ip}")
     try:
         # Если код комнаты пустой(То есть она создается), то берем рандомную по количеству игроков и извлекаем из нее данные
-        with sq.connect(db_path) as dannie:
-            cur = dannie.cursor()
-            if code == "":
-                cur.execute(f"""
-                    SELECT room_id FROM (
-                        SELECT room_id, COUNT(player_id) as player_count
-                        FROM svazka
-                        GROUP BY room_id
-                        HAVING COUNT(player_id) = {max_p}
-                    )
-                    ORDER BY RANDOM()
-                    LIMIT 1
-                """)
+        key = get_or_create_key()
+        conn = apsw.Connection(db_path)
+        conn.pragma("key", key)
+        cur = conn.cursor()
 
-                id_room = cur.fetchall()
-                # Нужно для того, чтобы выделить случайную комнату в которой есть 4 игрока
+        if code == "":
+            cur.execute(f"""
+                SELECT room_id FROM (
+                    SELECT room_id, COUNT(player_id) as player_count
+                    FROM svazka
+                    GROUP BY room_id
+                    HAVING COUNT(player_id) = {max_p}
+                )
+                ORDER BY RANDOM()
+                LIMIT 1
+            """)
 
-                # Получайем id комнаты
-                cur.execute("SELECT * FROM rooms WHERE id = ?", (id_room[0]))
-            else:
-                cur.execute("SELECT * FROM rooms WHERE code = ?", (code,))
+            id_room = cur.fetchall()
+            # Нужно для того, чтобы выделить случайную комнату в которой есть 4 игрока
 
-            room_info = cur.fetchall()
-
-            print(room_info)
-
-            id_room = room_info[0]
-
-            code = room_info[0][1]
             # Получайем id комнаты
+            cur.execute("SELECT * FROM rooms WHERE id = ?", (id_room[0]))
+        else:
+            cur.execute("SELECT * FROM rooms WHERE code = ?", (code,))
 
-            # Получаем id игроков в этой комнате по средством связи
-            cur.execute("SELECT player_id FROM svazka WHERE room_id = ?", (id_room[0],))
+        room_info = cur.fetchall()
 
-            players_id = cur.fetchall()
-            # Получаем id игроков в этой комнате по средством связи
+        print(room_info)
 
-            # Через id игроков получаем всю инфу о них, и записываем в список
-            players = []
+        id_room = room_info[0]
 
-            for i in players_id:
-                for j in i:
-                    cur.execute(
-                        "SELECT profession,biology,health,hobby,fobya,character,fact,bagaje,uslovie FROM players WHERE id = ?",
-                        (j,),
-                    )
-                    players.append(list(*cur.fetchall()))
-                    break
+        code = room_info[0][1]
+        # Получайем id комнаты
+
+        # Получаем id игроков в этой комнате по средством связи
+        cur.execute("SELECT player_id FROM svazka WHERE room_id = ?", (id_room[0],))
+
+        players_id = cur.fetchall()
+        # Получаем id игроков в этой комнате по средством связи
+
+        # Через id игроков получаем всю инфу о них, и записываем в список
+        players = []
+
+        for i in players_id:
+            for j in i:
+                cur.execute(
+                    "SELECT profession,biology,health,hobby,fobya,character,fact,bagaje,uslovie FROM players WHERE id = ?",
+                    (j,),
+                )
+                players.append(list(*cur.fetchall()))
+                break
+
+        conn.close()
 
         # Список игроков и начальных данных
         play = {}
@@ -1291,7 +1297,7 @@ def game_okno(
 
         window.mainloop()
 
-    except sq.Error as e:
+    except apsw.Error as e:
         print(f"Database error in okno4: {e}")
         import tkinter.messagebox as mb
 

@@ -1,11 +1,11 @@
-import sqlite3 as sq
 import tkinter as tk
 from tkinter import ttk
 from universal_okno import game_okno
 import os
 import sys
 import requests
-
+import apsw
+from crypto_db import get_or_create_key
 
 # Нахождение БД и иконок
 def get_resource_path(relative_path):
@@ -43,37 +43,40 @@ def connect(icon_png, icon_ico, db_path):
 
         if code and len(code) >= 2:
             try:
-                with sq.connect(db_path) as dannie:
-                    cur = dannie.cursor()
-                    cur.execute("SELECT max_players FROM rooms WHERE code = ?", (code,))
-                    data = cur.fetchone()
+                key = get_or_create_key()
+                conn = apsw.Connection(db_path)
+                conn.pragma("key", key)
+                cursor = conn.cursor()
+                cursor.execute("SELECT max_players FROM rooms WHERE code = ?", (code,))
+                data = cursor.fetchone()
+                conn.close()
 
-                    if data:
-                        new_maximum = data[0]
-                        if new_maximum != maximum:
-                            maximum = new_maximum
-                            slider1.config(to=maximum)
-                            if slider1.get() > maximum:
-                                slider1.set(maximum)
-                            max_label.config(
-                                text=f"⚡ Вместимость бункера: {maximum}", fg="#00FF00"
-                            )
-                            status_label.config(
-                                text="✅ Бункер обнаружен", fg="#00FF00"
-                            )
-                            check_occupied_numbers()
-
-                        # Устанавливаем слайдер на 1 и обновляем label
-                        slider1.set(1)
-                        update_label1()
-                    else:
-                        max_label.config(text="❌ Бункер не найден", fg="#FF0000")
-                        status_label.config(
-                            text="⚠️ Проверьте код доступа", fg="#FF7B30"
+                if data:
+                    new_maximum = data[0]
+                    if new_maximum != maximum:
+                        maximum = new_maximum
+                        slider1.config(to=maximum)
+                        if slider1.get() > maximum:
+                            slider1.set(maximum)
+                        max_label.config(
+                            text=f"⚡ Вместимость бункера: {maximum}", fg="#00FF00"
                         )
-                        # Сбрасываем label на 0
-                        label1.config(text="🧍 Ваш номер: 0")
-            except sq.Error as e:
+                        status_label.config(
+                            text="✅ Бункер обнаружен", fg="#00FF00"
+                        )
+                        check_occupied_numbers()
+
+                    # Устанавливаем слайдер на 1 и обновляем label
+                    slider1.set(1)
+                    update_label1()
+                else:
+                    max_label.config(text="❌ Бункер не найден", fg="#FF0000")
+                    status_label.config(
+                        text="⚠️ Проверьте код доступа", fg="#FF7B30"
+                    )
+                    # Сбрасываем label на 0
+                    label1.config(text="🧍 Ваш номер: 0")
+            except apsw.Error as e:
                 max_label.config(text=f"💀 Ошибка системы: {e}", fg="#FF0000")
                 status_label.config(text="⚡ Критический сбой", fg="#FF0000")
         else:
