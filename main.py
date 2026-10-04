@@ -8,6 +8,7 @@ from rules import rules
 from crypto_db import init_database
 from secret import *
 
+
 # Находим БД и картинки в приложении
 def get_resource_path(relative_path):
     try:
@@ -90,6 +91,7 @@ okno = tk.Tk()
 okno.title("Бункер")
 okno.geometry("1200x1000")
 
+
 # Взависимости от окна идет полноэкранный режим
 if sys.platform.startswith("win"):
     okno.state("zoomed")
@@ -99,6 +101,7 @@ else:
     except:
         okno.state("normal")
 
+
 # Цвета
 BG_COLOR = "#1A1A1A"
 TEXT_COLOR = "#E0E0E0"
@@ -106,7 +109,9 @@ ACCENT_COLOR = "#FF7B30"
 BUTTON_BG = "#2D2D2D"
 BUTTON_ACTIVE = "#CC5500"
 
+
 okno.configure(bg=BG_COLOR)
+
 
 # Установка иконки взависимости от платформы
 if sys.platform.startswith("win") and os.path.exists(ICON_ICO_PATH):
@@ -117,6 +122,7 @@ elif os.path.exists(ICON_PNG_PATH):
         okno.iconphoto(True, img)
     except:
         pass
+
 
 # Стили
 TITLE_STYLE = {"font": ("Courier New", 24, "bold"), "bg": BG_COLOR, "fg": ACCENT_COLOR}
@@ -133,6 +139,7 @@ BUTTON_STYLE = {
     "relief": "raised",
     "bd": 3,
 }
+
 
 # Контент
 title_label = tk.Label(okno, text="🚧 БУНКЕР 🚧", **TITLE_STYLE)
@@ -161,6 +168,7 @@ label3.pack(pady=(20, 10))
 pravila = tk.Button(okno, text="📜", command=book, **BUTTON_STYLE)
 pravila.pack(pady=10)
 
+
 footer = tk.Label(
     okno,
     text="⚡ Выживайте любой ценой ⚡",
@@ -169,4 +177,5 @@ footer = tk.Label(
     fg=TEXT_COLOR,
 )
 footer.pack(side="bottom", pady=20)
+
 okno.mainloop()
