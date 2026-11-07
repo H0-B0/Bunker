@@ -471,8 +471,14 @@ def game_okno(
                                         users[i].real_izgoy()
                                     elif i not in get_in:
                                         users[i]._vikid()
-                            array = get_in
 
+                            elif len(get_in) == len(array):
+                                print('Он смотрит одинаково ли количество голосов')
+                                for i in range(1, max_p + 1):
+                                    users[i].izgnanie.config(
+                                        text="ПРОГОЛОСОВАТЬ", fg=RED_ACCENT
+                                    )
+                            array = get_in
                             zamena()
 
                         elif msg == "locks":
