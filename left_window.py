@@ -148,7 +148,7 @@ def left(code, icon_png, icon_ico, db_path):
     separator4 = tk.Frame(content_frame, height=2, bg=ACCENT_COLOR)
     separator4.grid(column=0, columnspan=2, row=8, sticky='we', padx=20, pady=10)
 
-    place = tk.Label(content_frame, text="Бункер расположен в ", **HEADING_STYLE)
+    place = tk.Label(content_frame, text="Расположение бункера ", **HEADING_STYLE)
     place.grid(column=0, row=9, pady=(0,0), padx=20, sticky='w')
 
     raspolozhenie = tk.Label(content_frame, text=mesto, **BUTTON_STYLE)

@@ -370,13 +370,19 @@ def game_okno(
                                         sticky="new",
                                         pady=10,
                                     )
-                                    if last == 0:
+                                    # Если последний изгнанный игрок входит в текущий array (все еще в бункере)
+                                    if last in array:
                                         users[user].kolVo_golosov.config(
                                             text=f"{golosa} из {len(array)}"
                                         )
-                                    elif last > 1:
+                                    # Если последний изгнанный игрок не входит в array (то есть изгнан, но еще может голосовать)
+                                    elif last != 0:
                                         users[user].kolVo_golosov.config(
                                             text=f"{golosa} из {len(array) + 1}"
+                                        )
+                                    else:
+                                        users[user].kolVo_golosov.config(
+                                            text=f"{golosa} из {len(array)}"
                                         )
                                 else:
                                     users[user].vote_frame.grid_forget()

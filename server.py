@@ -204,51 +204,62 @@ async def izgnat(room_code: str):
     global last
     global logs
     global golosa
-    keys = list(voices.keys())
-    first_values = list(voices.values())
-    values = []
-    try:
-        for i in first_values:
-            values.append(int(i))
-    except ValueError:
-        values.append(0)
-    max_voice = max(values)
-    count = values.count(max_voice)
-    if last > 1:
-        if len(array) + 1 == golosa:
-            if count == 1:
-                array.remove(keys[values.index(max_voice)])
-                golosa = 0
-                logs = []
-                last = keys[values.index(max_voice)]
-                for i in range(min(array), max(array) + 1):
-                    voices[i] = 0
-                voices[keys[values.index(max_voice)]] = "Изгнан"
-                print(f"Произошло изгание игрока {keys[values.index(max_voice)]}")
-                await newsletter(room_code, ["voices", "last", "array"])
+    
+    # Считаем голоса только для тех, кто ещё в array
+    valid_voices = {}
+    for player in array:
+        if player in voices:
+            try:
+                valid_voices[player] = int(voices[player])
+            except (ValueError, TypeError):
+                valid_voices[player] = 0
+    
+    if not valid_voices:
+        print("Нет валидных игроков для изгнания")
+        return
+    
+    max_voice = max(valid_voices.values())
+    count = list(valid_voices.values()).count(max_voice)
+    
+    # Определяем, сколько людей должно проголосовать
+    if last != 0:
+        needed_votes = len(array) + 1
+    else:
+        needed_votes = len(array)
+    
+    if needed_votes == golosa:
+        if count == 1:
+            # Находим игрока с максимальным количеством голосов
+            player_to_remove = [p for p, v in valid_voices.items() if v == max_voice][0]
+            
+            if player_to_remove in array:
+                array.remove(player_to_remove)
             else:
-                golosa = 0
-                for i in range(min(array), max(array) + 1):
+                print(f"Ошибка: игрока {player_to_remove} нет в array")
+                return
+            
+            golosa = 0
+            logs = []
+            last = player_to_remove
+            
+            # Сбрасываем голоса для оставшихся и ставим "Изгнан" для удаленного
+            for i in list(voices.keys()):
+                if i in array:
                     voices[i] = 0
-                logs = []
-
-    elif last == 0:
-        if len(array) == golosa:
-            if count == 1:
-                array.remove(keys[values.index(max_voice)])
-                golosa = 0
-                logs = []
-                last = keys[values.index(max_voice)]
-                for i in range(min(array), max(array) + 1):
+                else:
+                    voices[i] = "Изгнан"
+            
+            print(f"Произошло изгнание игрока {player_to_remove}")
+            await newsletter(room_code, ["voices", "last", "array"])
+        else:
+            # Ничья
+            golosa = 0
+            for i in list(voices.keys()):
+                if i in array:
                     voices[i] = 0
-                voices[keys[values.index(max_voice)]] = "Изгнан"
-                print(f"Произошло изгание игрока {keys[values.index(max_voice)]}")
-                await newsletter(room_code, ["voices", "last", "array"])
-            else:
-                golosa = 0
-                for i in range(min(array), max(array) + 1):
-                    voices[i] = 0
-                logs = []
+            logs = []
+            print("Ничья — никто не изгнан")
+            await newsletter(room_code, ["voices"])
 
 
 @app.get("/rooms/{room_code}/last")
