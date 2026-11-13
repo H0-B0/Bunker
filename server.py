@@ -259,7 +259,7 @@ async def izgnat(room_code: str):
                     voices[i] = 0
             logs = []
             print("Ничья — никто не изгнан")
-            await newsletter(room_code, ["voices"])
+            await newsletter(room_code, ["voices","array"])
 
 
 @app.get("/rooms/{room_code}/last")

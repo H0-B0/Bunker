@@ -6,7 +6,7 @@ import hashlib
 from sozdat import sozdat
 from connect import connect
 from rules import rules
-from crypto_db import init_database, get_or_create_key
+from crypto_db import init_database
 from secret import *
 
 
@@ -27,8 +27,11 @@ def file_hash(path):
 
 
 def setup_resources():
-    app_data_path = get_app_data_path()
-    os.makedirs(app_data_path, exist_ok=True)
+    db_dir = get_db_path()
+    key_path = get_key_path()
+    
+    os.makedirs(db_dir, exist_ok=True)
+    os.makedirs(os.path.dirname(key_path), exist_ok=True)
 
     resource_path = get_resource_path(".")
     resource_files = os.listdir(resource_path)
@@ -38,17 +41,16 @@ def setup_resources():
     DB_NAME = db_files[0]
     source_db = get_resource_path(DB_NAME)
 
-    db_path = os.path.join(app_data_path, DB_NAME)
-    key_path = os.path.join(app_data_path, ".game.key")
-    hash_marker = os.path.join(app_data_path, ".db_hash")
+    db_path = os.path.join(db_dir, DB_NAME)
+    hash_marker = os.path.join(db_dir, ".db_hash")
 
-    existing_dbs = [f for f in os.listdir(app_data_path) if f.endswith(".db")]
+    existing_dbs = [f for f in os.listdir(db_dir) if f.endswith(".db")]
     need_reencrypt = False
 
     src_hash = file_hash(source_db)
 
     if existing_dbs:
-        current_db = os.path.join(app_data_path, existing_dbs[0])
+        current_db = os.path.join(db_dir, existing_dbs[0])
 
         if existing_dbs[0] != DB_NAME:
             print(f"Имя БД изменилось ({existing_dbs[0]} -> {DB_NAME}), заменяем")
@@ -85,8 +87,8 @@ def setup_resources():
         need_reencrypt = True
 
     # Иконки
-    icon_ico_path = os.path.join(app_data_path, "bunker.ico")
-    icon_png_path = os.path.join(app_data_path, "bunker.png")
+    icon_ico_path = os.path.join(db_dir, "bunker.ico")
+    icon_png_path = os.path.join(db_dir, "bunker.png")
 
     if not os.path.exists(icon_png_path):
         source_png = get_resource_path("bunker.png")
@@ -100,23 +102,21 @@ def setup_resources():
             shutil.copy2(source_ico, icon_ico_path)
             print("ICO иконка скопирована")
 
-    return icon_png_path, icon_ico_path, db_path, need_reencrypt
+    return icon_png_path, icon_ico_path, db_path, need_reencrypt, key_path
 
 
 # Сначала чистим старые файлы, если это первый запуск
 cleanup_on_first_run()
 
 # Получение путей и флага необходимости шифрования
-ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH, NEED_REENCRYPT = setup_resources()
+ICON_PNG_PATH, ICON_ICO_PATH, DB_PATH, NEED_REENCRYPT, KEY_PATH = setup_resources()
 print(f"DB_PATH: {DB_PATH}, exists={os.path.exists(DB_PATH)}, need_reencrypt={NEED_REENCRYPT}")
+print(f"KEY_PATH: {KEY_PATH}")
 
 # Инициализация базы
-if NEED_REENCRYPT:
+if NEED_REENCRYPT or not os.path.exists(KEY_PATH):
+    print("Нужно создать ключ/перешифровать БД")
     init_database(DB_PATH)
-else:
-    if not os.path.exists(os.path.join(get_app_data_path(), ".game.key")):
-        print("Ключ пропал, а БД есть — перешифровываем заново")
-        init_database(DB_PATH)
 
 
 # Переход к созданию комнаты
@@ -193,9 +193,7 @@ soz.pack(pady=10)
 separator = tk.Frame(okno, height=2, bg=ACCENT_COLOR)
 separator.pack(fill="x", padx=100, pady=30)
 
-label2 = tk.Label(
-    okno, text="Присоединиться к комнате", **ZAGOLOVOK_STYLE, fg=TEXT_COLOR
-)
+label2 = tk.Label(okno, text="Присоединиться к комнате", **ZAGOLOVOK_STYLE, fg=TEXT_COLOR)
 label2.pack(pady=(20, 10))
 con = tk.Button(okno, text="🔗", command=prisoedinitsa, **BUTTON_STYLE)
 con.pack(pady=10)
